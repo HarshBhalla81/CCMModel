@@ -166,7 +166,7 @@ tree; it is retained as the record of why the migration was undertaken.
   `help_by_scouts`, `p1tree` (P1Tree dispersion, from Pattanayak et al.; see
   [docs/p1tree.md](docs/p1tree.md)), and `rooted_async` (the same paper's
   asynchronous `RootedAsync`, agent by agent; see
-  [docs/rootedasync.md](docs/rootedasync.md)). Their tests live in
+  [docs/2507.01298-optimal-dispersion-under-asynchrony/](docs/2507.01298-optimal-dispersion-under-asynchrony/)). Their tests live in
   `ccm-experiments/tests`.
 
 All documentation is indexed in [docs/README.md](docs/README.md). For how each

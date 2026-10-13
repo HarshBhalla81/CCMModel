@@ -4,7 +4,7 @@
 Pattanayak, Kshemkalyani, Kumar, Molla and Sharma, *Optimal Dispersion Under
 Asynchrony* (arXiv:2507.01298v1), with Algorithms 2, 3, 4 and 6. It is the
 A2 assignment. `ccm_algorithms::p1tree` is left as it was: it remains the
-centralised, synchronous construction described in [p1tree.md](p1tree.md).
+centralised, synchronous construction described in [p1tree.md](../p1tree.md).
 
 ## The model as implemented
 

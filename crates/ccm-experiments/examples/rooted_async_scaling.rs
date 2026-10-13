@@ -1,5 +1,6 @@
 //! Epochs `RootedAsync` takes as the number of agents grows, under the
-//! synchronous and a random schedule. The figures in `docs/rootedasync.md`.
+//! synchronous and a random schedule. The figures in
+//! `docs/2507.01298-optimal-dispersion-under-asynchrony/gap-and-trace-note.md`.
 //!
 //! ```sh
 //! cargo run --release -p ccm-experiments --example rooted_async_scaling

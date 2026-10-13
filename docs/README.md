@@ -15,7 +15,7 @@ Start here.
   Kshemkalyani, Kumar, Molla and Sharma, *Optimal Dispersion Under Asynchrony*.
   What is implemented, what is not, and the two places where the pseudocode
   needs reading alongside the proofs.
-- [rootedasync.md](rootedasync.md) — `RootedAsync`, the asynchronous
+- [2507.01298-optimal-dispersion-under-asynchrony/](2507.01298-optimal-dispersion-under-asynchrony/) — `RootedAsync`, the asynchronous
   algorithm of the same paper, with every agent acting only on what it can see
   at its node. How it is modelled, the eleven places the pseudocode needed
   repair (two found by the simulator checking itself), and measurements.
