@@ -6,17 +6,21 @@
 //! `CCM_UPDATE_GOLDEN=1 cargo test -p ccm-experiments --test golden`, so the
 //! difference is reviewed rather than discovered.
 
-use ccm_core::{Algorithm, NodeId, PortAssignment};
+use ccm_core::{Algorithm, NodeId, PortAssignment, SchedulerModel};
 use ccm_experiments::{
     results_to_csv, run_sweep_parallel, BuiltinRunner, GraphFamily, GraphSpec, PlacementSpec,
     RunRequest, SweepSpec,
 };
 use std::path::PathBuf;
 
-const ALGORITHMS: [Algorithm; 3] = [
-    Algorithm::DropAndFreeze,
-    Algorithm::HelpByScouts,
-    Algorithm::P1Tree,
+/// Every algorithm under the synchronous scheduler, and `RootedAsync` also
+/// under a random one, so its asynchronous behaviour is pinned too.
+const RUNS: [(Algorithm, SchedulerModel); 5] = [
+    (Algorithm::DropAndFreeze, SchedulerModel::Synchronous),
+    (Algorithm::HelpByScouts, SchedulerModel::Synchronous),
+    (Algorithm::P1Tree, SchedulerModel::Synchronous),
+    (Algorithm::RootedAsync, SchedulerModel::Synchronous),
+    (Algorithm::RootedAsync, SchedulerModel::Asynchronous),
 ];
 
 const FAMILIES: [GraphFamily; 8] = [
@@ -38,7 +42,7 @@ const PORTS: [PortAssignment; 3] = [
 
 fn sweep_csv() -> String {
     let mut results = Vec::new();
-    for algorithm in ALGORITHMS {
+    for (algorithm, scheduler) in RUNS {
         for family in FAMILIES {
             for port_assignment in PORTS {
                 let base = RunRequest {
@@ -49,6 +53,7 @@ fn sweep_csv() -> String {
                     agents: 6,
                     seed: 1,
                     round_limit: None,
+                    scheduler,
                 };
                 let spec = SweepSpec::new(base)
                     .with_node_counts(vec![12, 40])
