@@ -200,6 +200,7 @@ fn plan_probe(cx: &mut Cx<'_, '_>, lead: &mut Lead) {
     let candidates = degree - u16::from(skip.is_some());
     lead.skip_port = skip;
     lead.best = None;
+    lead.batches_here = 0;
     lead.batch = u16::try_from(lead.group_size).expect("the group fits the port domain");
     lead.scatter_mode = u32::from(degree) + 1 >= lead.k;
     lead.probe_limit = if lead.scatter_mode {
@@ -219,6 +220,7 @@ fn plan_probe(cx: &mut Cx<'_, '_>, lead: &mut Lead) {
 
 fn next_batch_or_decide(cx: &mut Cx<'_, '_>, lead: &mut Lead, first: u16) {
     if first < lead.probe_limit {
+        lead.batches_here += 1;
         issue(cx, lead, Command::Probe { first });
         lead.phase = Phase::Probe {
             first,
@@ -450,6 +452,11 @@ fn begin_move(cx: &mut Cx<'_, '_>, lead: &mut Lead) {
     lead.prev_id = Some(owner_id);
     write_owner(cx, owner_id, owner);
     cx.note(Note::GroupMove(lead.group_size as usize));
+    cx.note(Note::Step {
+        forward: matches!(lead.plan, Plan::Forward(_)),
+        batches: lead.batches_here,
+        scouts: lead.batch,
+    });
     issue(cx, lead, Command::Move { port });
     lead.phase = Phase::Depart;
 }
@@ -462,6 +469,12 @@ fn finish_scatter(cx: &mut Cx<'_, '_>, lead: Lead) -> Option<Lead> {
         return Some(lead);
     };
     let parent = lead.head_owner.expect("the head has an owner");
+    cx.note(Note::Step {
+        forward: true,
+        batches: lead.batches_here,
+        scouts: lead.batch,
+    });
+    cx.note(Note::Constructed);
     let group_left = lead.group_size - lead.unsettled;
     if group_left > 0 {
         let mut handed = lead;
@@ -479,6 +492,7 @@ fn finish_scatter(cx: &mut Cx<'_, '_>, lead: Lead) -> Option<Lead> {
 
 /// Construction is over. Retrace starts where the group stands.
 fn begin_retrace(cx: &mut Cx<'_, '_>, lead: Lead) -> Option<Lead> {
+    cx.note(Note::Constructed);
     if lead.group_size > 0 {
         let owner = lead.head_owner;
         hand_over(cx, lead, owner);

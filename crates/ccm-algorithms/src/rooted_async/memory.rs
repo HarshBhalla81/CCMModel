@@ -289,6 +289,8 @@ pub struct Lead {
     pub skip_port: Option<PortId>,
     pub probe_limit: u16,
     pub batch: u16,
+    /// Probe batches sent from the current node, for the step log.
+    pub batches_here: u16,
     pub scatter_mode: bool,
     pub best: Option<Candidate>,
     pub plan: Plan,

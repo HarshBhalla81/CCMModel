@@ -55,6 +55,14 @@ pub(super) enum Note {
     RetraceMove,
     GroupMove(usize),
     MacroRound,
+    /// The group leaves the head: one step of the DFS.
+    Step {
+        forward: bool,
+        batches: u16,
+        scouts: u16,
+    },
+    /// Every agent has settled; Retrace begins.
+    Constructed,
     /// The group expects this agent to own the node it has reached.
     HeadOwner(AgentId),
     /// A probe the head concluded, to be checked against the truth.

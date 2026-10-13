@@ -134,6 +134,40 @@ vacated nodes is no longer the paper's argument. It is measured below instead.
   - rejection of a scattered start;
   - a single agent.
 
+## Validation of the paper's claims
+
+`ccm-experiments/tests/rooted_async_validation.rs` checks each claim
+directly. `scripts/validate-rooted-async.sh` runs it in release mode,
+including the large cases, and prints a PASS or FAIL line per property.
+
+1. **Dispersion.** Every run ends with every agent settled at its own home
+   and no node holding more than one agent. Checked over 8 families, 3 seeds,
+   k ∈ {3, 12, 24} on 24 nodes, under synchronous and random schedules.
+2. **Asynchrony.**
+   - Every random schedule gives the synchronous placement: 8 seeds, every
+     family.
+   - Holding back any one agent, scout or lead, settled or not, changes
+     neither the placement nor the step bound.
+   - Random schedules really interleave: more than 1.5k activations per
+     epoch, against exactly k under the synchronous schedule.
+3. **Time.** O(k) is checked as its parts, each bounded with a constant that
+   does not depend on k:
+
+   | Part | Bound | Observed, k up to 256 |
+   |---|---|---|
+   | Epochs per DFS step (finding the next node) | ≤ 40 | ≤ 24 synchronous, ≤ 13 random, the same for k = 8 and k = 256 |
+   | Probe batches per node (Remark 1) | ≤ 3 | ≤ 2 |
+   | Scouts at a probe (Lemma 7) | ≥ ⌈(k−2)/3⌉ | 38-99% of k |
+   | DFS steps (Claim 1: each node entered at most twice) | ≤ 4k | ≤ 2.05k |
+   | Retrace epochs | ≤ 10k | ≤ 6.6k |
+
+   A complete graph, degree k − 1, never takes longer per step than a path,
+   so the degree does not enter the step cost either.
+
+The bounds are measured, not proved. A finite run can refute O(k), but cannot
+establish it. To check that the script can fail, the step bound was briefly
+set to 5: properties 2 and 3 failed and the script exited non-zero.
+
 ## Measurements
 
 Epochs to dispersion, all k agents starting at node 0 of a k-node graph with
@@ -160,9 +194,12 @@ random ports. `vac/k` is the share of agents vacated by the end.
 - **Paths and trees** are flat per agent: linear, as Theorem 2 claims.
 - **Grids** level off: 36.0, 36.8 and 37.1 rounds per agent at k = 256, 384
   and 512, which is consistent with linear time.
-- **Random graphs** still drift upward per agent (33.1, 38.2, 39.5 at the same
-  k), though more slowly. That is not yet explained, so these figures are not
-  evidence for or against the O(k) bound.
+- **Random graphs** drift upward per agent (33.1, 38.2, 39.5 at the same k).
+  The validation above explains why. The cost of one step stays constant, but
+  the number of steps per agent grows: more nodes are left partiallyVisited
+  and reattached later. That count is bounded by 4k (Claim 1), and observed
+  at no more than 2.05k, so the drift approaches a constant rather than
+  growing without limit.
 - **Complete graphs** finish in constant time through the degree ≥ k−1
   shortcut.
 - **Vacated share** stays at 0.44 or more, above Lemma 4's one-third, despite

@@ -4,7 +4,7 @@
 use super::agent::activate;
 use super::memory::{AgentState, AsyncAgent, Command, Lead, Memory, Phase, Plan, Position, Target};
 use super::world::{Action, Note, World};
-use super::{ProbeEvent, RootedAsyncError, RootedAsyncResult, Schedule};
+use super::{HeadStep, ProbeEvent, RootedAsyncError, RootedAsyncResult, Schedule};
 use crate::common::EdgeType;
 use crate::p1tree::TreeEdge;
 use ccm_core::{
@@ -17,6 +17,8 @@ pub(super) struct Run<'g, M, R> {
     metrics: M,
     recorder: R,
     probes: Vec<ProbeEvent>,
+    steps: Vec<HeadStep>,
+    constructed_at: Option<u64>,
     epoch: u64,
     activations: u64,
     /// Whether anything has changed since the current epoch began.
@@ -52,6 +54,7 @@ impl<'g, M: Metrics, R: Recorder> Run<'g, M, R> {
             skip_port: None,
             probe_limit: 0,
             batch: 0,
+            batches_here: 0,
             scatter_mode: false,
             best: None,
             plan: Plan::Back,
@@ -69,6 +72,8 @@ impl<'g, M: Metrics, R: Recorder> Run<'g, M, R> {
             metrics,
             recorder,
             probes: Vec::new(),
+            steps: Vec::new(),
+            constructed_at: None,
             epoch: 0,
             activations: 0,
             changed: false,
@@ -99,6 +104,8 @@ impl<'g, M: Metrics, R: Recorder> Run<'g, M, R> {
                 epochs: self.epoch,
                 activations: self.activations,
                 probes: self.probes,
+                steps: self.steps,
+                constructed_at: self.constructed_at,
             },
             self.metrics,
             self.recorder,
@@ -314,6 +321,18 @@ impl<'g, M: Metrics, R: Recorder> Run<'g, M, R> {
             Note::RetraceMove => self.metrics.retrace(),
             Note::GroupMove(size) => self.metrics.group_move(size),
             Note::MacroRound => self.metrics.macro_round(),
+            Note::Step {
+                forward,
+                batches,
+                scouts,
+            } => self.steps.push(HeadStep {
+                epoch: self.epoch,
+                node,
+                forward,
+                batches,
+                scouts,
+            }),
+            Note::Constructed => self.constructed_at = Some(self.epoch),
             Note::HeadOwner(expected) => {
                 let actual = self.world.home_owner[node.index()];
                 if actual != Some(expected) {

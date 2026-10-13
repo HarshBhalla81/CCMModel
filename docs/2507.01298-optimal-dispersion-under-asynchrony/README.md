@@ -19,6 +19,7 @@ Work on Pattanayak, Kshemkalyani, Kumar, Molla and Sharma,
 |---|---|
 | The algorithm | [`crates/ccm-algorithms/src/rooted_async/`](../../crates/ccm-algorithms/src/rooted_async/) |
 | Its tests, including the paper's Appendix B run | [`crates/ccm-experiments/tests/rooted_async.rs`](../../crates/ccm-experiments/tests/rooted_async.rs) |
+| Validation of the paper's three claims (dispersion, asynchrony, O(1) per step and O(k) total) | [`crates/ccm-experiments/tests/rooted_async_validation.rs`](../../crates/ccm-experiments/tests/rooted_async_validation.rs), run by [`scripts/validate-rooted-async.sh`](../../scripts/validate-rooted-async.sh) |
 | The sweep that checks local decisions against the truth | [`crates/ccm-experiments/examples/rooted_async_sweep.rs`](../../crates/ccm-experiments/examples/rooted_async_sweep.rs) |
 | The scaling measurements | [`crates/ccm-experiments/examples/rooted_async_scaling.rs`](../../crates/ccm-experiments/examples/rooted_async_scaling.rs) |
 | The synchronous P1Tree construction this builds on, unchanged | [`../p1tree.md`](../p1tree.md) |
@@ -26,6 +27,8 @@ Work on Pattanayak, Kshemkalyani, Kumar, Molla and Sharma,
 ## Reproduce
 
 ```sh
+./scripts/validate-rooted-async.sh          # the three claims, PASS/FAIL each (~1 min)
+./scripts/validate-rooted-async.sh --full   # also the 8,208-run truth-check sweeps
 cargo test -p ccm-experiments --test rooted_async
 cargo run --release -p ccm-experiments --example rooted_async_sweep        # synchronous
 cargo run --release -p ccm-experiments --example rooted_async_sweep -- 11  # random schedule, seed 11

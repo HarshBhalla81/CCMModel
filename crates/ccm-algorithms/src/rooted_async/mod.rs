@@ -85,6 +85,20 @@ pub struct ProbeEvent {
     pub owner: Option<AgentId>,
 }
 
+/// One step of the DFS head: the group leaving `node`.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct HeadStep {
+    /// Epochs completed when the group left.
+    pub epoch: u64,
+    pub node: NodeId,
+    /// Towards a new or reattached node, rather than back to the parent.
+    pub forward: bool,
+    /// Probe batches sent from this node before leaving.
+    pub batches: u16,
+    /// Scouts available for each batch: `|A_scout|`.
+    pub scouts: u16,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RootedAsyncResult {
     pub termination: Termination,
@@ -95,6 +109,10 @@ pub struct RootedAsyncResult {
     pub epochs: u64,
     pub activations: u64,
     pub probes: Vec<ProbeEvent>,
+    /// Every DFS step, in order.
+    pub steps: Vec<HeadStep>,
+    /// Epochs completed when the last agent settled and Retrace began.
+    pub constructed_at: Option<u64>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
