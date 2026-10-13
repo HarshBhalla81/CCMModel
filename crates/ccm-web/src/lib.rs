@@ -386,7 +386,19 @@ fn algorithm_label(value: &str) -> &'static str {
     match value {
         "help" => "Help by Scouts",
         "p1tree" => "P1Tree",
+        "rooted_async" => "RootedAsync (synchronous)",
+        "rooted_async_random" => "RootedAsync (asynchronous)",
         _ => "Drop and Freeze",
+    }
+}
+
+/// What the round counter holds: rounds, or, under an asynchronous schedule,
+/// epochs, the shortest intervals in which every agent completes a cycle.
+fn time_unit(algorithm: &str) -> &'static str {
+    if algorithm == "rooted_async_random" {
+        "epochs"
+    } else {
+        "rounds"
     }
 }
 
@@ -1498,6 +1510,10 @@ fn accept_result(state: &Rc<RefCell<AppState>>, result: ResultData) {
     app.result = Some(result.clone());
     let config = app.config.clone();
     set_text(&app.document, "rounds", &result.rounds.to_string());
+    let unit = config
+        .as_ref()
+        .map_or("rounds", |c| time_unit(&c.algorithm));
+    set_text(&app.document, "roundsUnit", unit);
     set_text(&app.document, "moves", &result.moves.to_string());
     set_text(&app.document, "probes", &result.probes.to_string());
     set_text(
@@ -1587,6 +1603,8 @@ fn post_run(
         &"sampleEvery".into(),
         &(config.sample_every as u32).into(),
     )?;
+    // Seeds RootedAsync's asynchronous order; other algorithms ignore it.
+    Reflect::set(&message, &"scheduleSeed".into(), &config.seed.into())?;
     worker.post_message(&message)
 }
 
@@ -1901,6 +1919,11 @@ fn import_file(state: &Rc<RefCell<AppState>>, event: Event) {
                     .class_list()
                     .add_1("hidden");
                 set_text(&app.document, "rounds", &data.result.rounds.to_string());
+                let unit = app
+                    .config
+                    .as_ref()
+                    .map_or("rounds", |c| time_unit(&c.algorithm));
+                set_text(&app.document, "roundsUnit", unit);
                 set_text(&app.document, "moves", &data.result.moves.to_string());
                 set_text(&app.document, "probes", &data.result.probes.to_string());
                 set_text(

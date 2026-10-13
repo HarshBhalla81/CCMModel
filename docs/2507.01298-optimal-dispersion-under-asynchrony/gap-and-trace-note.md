@@ -211,10 +211,25 @@ These are counts from finite runs, not proofs. Wall-clock time is not reported.
 Reproduce the k ≤ 256 rows with
 `cargo run --release -p ccm-experiments --example rooted_async_scaling`.
 
+## Command line and browser (Stages 2 and 3)
+
+- **CLI.** `ccm run` and `ccm sweep` accept `--algorithm rooted-async` and
+  `--scheduler synchronous|asynchronous|starved:AGENT:PERIOD`. Every CSV row
+  carries `scheduler` and `time_unit`, so rounds and epochs are never confused.
+  Any other algorithm rejects a non-synchronous scheduler. `ccm events` prints
+  one run's probes (with the rule that decided each) and DFS steps, each with
+  its epoch. See `experiments/README.md`.
+- **Browser.** The simulator's algorithm menu has *RootedAsync (synchronous)*
+  and *RootedAsync (asynchronous)*. The asynchronous order is seeded from the
+  page's seed field, and the counter is labelled epochs instead of rounds.
+  Playback replays one snapshot per epoch. This was checked in headless Edge
+  on the served page: both entries complete, the replay ends dispersed, and
+  the page reports no errors.
+- **Golden file.** The golden sweep now pins `RootedAsync` under the
+  synchronous and an asynchronous schedule as well.
+
 ## Not done yet
 
-- **Stage 2 (CLI)** and **Stage 3 (web)** of A2. `rooted_async` is not yet in
-  `ccm_core::Algorithm`, the experiment runner, or the browser.
 - **Memory.** The per-agent bit count of Theorem 2 is not measured. Agents
   carry Table 2 plus a constant number of extra fields, all IDs and ports.
 - **Atomic cycles.** Under the random schedules a cycle is atomic: nobody acts

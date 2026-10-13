@@ -844,8 +844,13 @@ pub fn start_dashboard() -> Result<(), JsValue> {
             set_text(
                 &document,
                 "algorithmNote",
-                if algorithm == "p1tree" {
-                    "P1Tree requires a rooted start; every sweep places all agents at node 0."
+                if algorithm == "rooted_async_random" {
+                    "RootedAsync needs a rooted start, so every sweep places all agents at node \
+                     0. Under the asynchronous schedule the cost is counted in epochs, which are \
+                     not comparable with other algorithms' rounds."
+                } else if algorithm == "p1tree" || algorithm == "rooted_async" {
+                    "This algorithm requires a rooted start; every sweep places all agents at \
+                     node 0."
                 } else {
                     "All agents start at node 0, so the classes are compared on the same placement."
                 },

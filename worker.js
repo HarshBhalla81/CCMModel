@@ -31,6 +31,17 @@ async function load() {
 
 load();
 
+/* The menu value names the algorithm, and for RootedAsync the schedule too. */
+function selectorFor(name) {
+  switch (name) {
+    case 'help': return wasm.AlgorithmSelector.HelpByScouts;
+    case 'p1tree': return wasm.AlgorithmSelector.P1Tree;
+    case 'rooted_async': return wasm.AlgorithmSelector.RootedAsync;
+    case 'rooted_async_random': return wasm.AlgorithmSelector.RootedAsyncRandom;
+    default: return wasm.AlgorithmSelector.DropAndFreeze;
+  }
+}
+
 self.onmessage = async ({ data }) => {
   if (data.type === 'ping') {
     if (!wasm) await load();
@@ -43,11 +54,7 @@ self.onmessage = async ({ data }) => {
     // The dashboard asks for many small runs at once. Looping here keeps the
     // main thread free and avoids a postMessage round trip per data point.
     try {
-      const algorithm = data.algorithm === 'help'
-        ? wasm.AlgorithmSelector.HelpByScouts
-        : data.algorithm === 'p1tree'
-          ? wasm.AlgorithmSelector.P1Tree
-          : wasm.AlgorithmSelector.DropAndFreeze;
+      const algorithm = selectorFor(data.algorithm);
       const results = [];
       for (let i = 0; i < data.jobs.length; i++) {
         const job = data.jobs[i];
@@ -55,6 +62,7 @@ self.onmessage = async ({ data }) => {
           job.nodeCount, new Uint32Array(job.edges), new Uint32Array(job.starts),
           algorithm, wasm.TraceMode.Off, BigInt(job.roundLimit), 0, 1,
         );
+        simulation.set_schedule_seed(BigInt(job.seed ?? i));
         const output = simulation.run();
         results.push({
           rounds: Number(output.rounds()),
@@ -79,11 +87,7 @@ self.onmessage = async ({ data }) => {
   if (!wasm) return;
   try {
     self.postMessage({ type: 'progress', value: 0, message: 'Starting Rust simulation…' });
-    const algorithm = data.algorithm === 'help'
-      ? wasm.AlgorithmSelector.HelpByScouts
-      : data.algorithm === 'p1tree'
-        ? wasm.AlgorithmSelector.P1Tree
-        : wasm.AlgorithmSelector.DropAndFreeze;
+    const algorithm = selectorFor(data.algorithm);
     const traceMode = data.traceMode === 'full'
       ? wasm.TraceMode.Full
       : data.traceMode === 'bounded' ? wasm.TraceMode.Bounded : wasm.TraceMode.Off;
@@ -91,6 +95,7 @@ self.onmessage = async ({ data }) => {
       data.nodeCount, new Uint32Array(data.edges), new Uint32Array(data.starts),
       algorithm, traceMode, BigInt(data.roundLimit), data.maxTraceRecords, data.sampleEvery,
     );
+    simulation.set_schedule_seed(BigInt(data.scheduleSeed ?? 0));
     const output = simulation.run();
     const positions = output.positions();
     const statuses = output.statuses();
