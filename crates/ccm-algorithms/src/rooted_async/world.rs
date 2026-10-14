@@ -32,7 +32,10 @@ impl World<'_> {
 
     pub fn land(&mut self, id: AgentId) -> bool {
         let agent = &mut self.agents[id.index()];
-        let Position::InTransit { to, arrival_port } = agent.position else {
+        let Position::InTransit {
+            to, arrival_port, ..
+        } = agent.position
+        else {
             return false;
         };
         agent.position = Position::At(to);

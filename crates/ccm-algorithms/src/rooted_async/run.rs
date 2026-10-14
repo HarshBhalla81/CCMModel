@@ -10,7 +10,7 @@ use crate::p1tree::TreeEdge;
 use ccm_core::{
     AgentId, AgentStatus, DeterministicRng, Metrics, NodeId, PortGraph, RoundKind, Termination,
 };
-use ccm_trace::{Checkpoint, Recorder};
+use ccm_trace::{Checkpoint, Recorder, SimulationEvent};
 
 pub(super) struct Run<'g, M, R> {
     world: World<'g>,
@@ -267,6 +267,7 @@ impl<'g, M: Metrics, R: Recorder> Run<'g, M, R> {
                 ))?;
             self.world.occupants[node.index()].retain(|&other| other != id);
             self.world.agents[id.index()].position = Position::InTransit {
+                from: node,
                 to: edge.neighbor,
                 arrival_port: edge.remote_port,
             };
@@ -360,6 +361,17 @@ impl<'g, M: Metrics, R: Recorder> Run<'g, M, R> {
                         actual,
                     });
                 }
+                if self.recorder.enabled() {
+                    self.recorder.record_event(
+                        self.epoch,
+                        SimulationEvent::ProbeConcluded {
+                            head,
+                            port: resolution.port,
+                            rule: resolution.rule.code(),
+                            owner: resolution.owner,
+                        },
+                    );
+                }
                 self.probes.push(ProbeEvent {
                     epoch: self.epoch,
                     head,
@@ -435,6 +447,13 @@ impl<'g, M: Metrics, R: Recorder> Run<'g, M, R> {
                 .collect(),
             home_nodes: agents.iter().map(|a| a.home).collect(),
             settled_agents,
+            transit_from: agents
+                .iter()
+                .map(|a| match a.position {
+                    Position::InTransit { from, .. } => Some(from),
+                    Position::At(_) => None,
+                })
+                .collect(),
         });
     }
 }

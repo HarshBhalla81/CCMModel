@@ -22,7 +22,11 @@ pub enum AgentState {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Position {
     At(NodeId),
-    InTransit { to: NodeId, arrival_port: PortId },
+    InTransit {
+        from: NodeId,
+        to: NodeId,
+        arrival_port: PortId,
+    },
 }
 
 impl Position {

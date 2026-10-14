@@ -40,7 +40,19 @@ cargo run --release -p ccm-experiments --example rooted_async_scaling
 ```
 
 In the browser, choose *RootedAsync* from the simulator's algorithm menu,
-then *Asynchronous* from the *Schedule* menu that appears below it.
+then *Asynchronous* from the *Schedule* menu that appears below it. During
+playback:
+
+- an agent on an edge is drawn halfway along it, outlined;
+- a dashed amber ring marks the home of each scout that is away from it;
+- a blue ring marks the head while it probes, and the line under the timeline
+  names each port it probed, the rule (R1 to R3c-ii) that decided it, and
+  what it found.
+
+*Compare schedules* runs the same input synchronously and under three seeded
+asynchronous orders, and tabulates time, moves, probes and whether each final
+placement matches the synchronous one. The placement is locked to *Rooted at
+node 0*, which the algorithm requires.
 
 ## A2 checklist
 
@@ -48,3 +60,4 @@ then *Asynchronous* from the *Schedule* menu that appears below it.
 - [x] RootedAsync tests
 - [x] CLI (Stage 2): `--algorithm rooted-async`, `--scheduler`, `ccm events`
 - [x] Web demo (Stage 3): *RootedAsync* in the simulator's menu, with a *Schedule* menu
+- [x] Web extras: agents on edges, scouts' homes, probe rules per frame, schedule comparison

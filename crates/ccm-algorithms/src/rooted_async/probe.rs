@@ -24,6 +24,24 @@ pub enum ProbeRule {
     R3cIIBeta,
 }
 
+impl ProbeRule {
+    /// A stable numeric code for traces, in declaration order:
+    /// R1 = 0, R3a-i = 1, R3a-ii = 2, R3b = 3, R3c-i = 4, R3c-ii(a) = 5,
+    /// R3c-ii(b) = 6.
+    #[must_use]
+    pub const fn code(self) -> u8 {
+        match self {
+            Self::R1 => 0,
+            Self::R3aI => 1,
+            Self::R3aII => 2,
+            Self::R3b => 3,
+            Self::R3cI => 4,
+            Self::R3cIIAlpha => 5,
+            Self::R3cIIBeta => 6,
+        }
+    }
+}
+
 /// What a probe concluded about the neighbour behind one port.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Resolution {

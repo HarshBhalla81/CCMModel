@@ -924,11 +924,27 @@ fn encode_event(bytes: &mut Vec<u8>, step: u64, event: &SimulationEvent) {
             put_u32(bytes, node.0);
             bytes.push(u8::from(*occupied));
         }
+        SimulationEvent::ProbeConcluded {
+            head,
+            port,
+            rule,
+            owner,
+        } => {
+            bytes.push(7);
+            put_u32(bytes, head.0);
+            put_u16(bytes, port.0);
+            bytes.push(*rule);
+            put_optional_u32(bytes, owner.map(|agent| agent.0));
+        }
     }
 }
 
+/// Record type 3 is a checkpoint. Type 4 is the same followed by, for each
+/// agent, the node it left if it is on an edge: only `RootedAsync` writes it,
+/// so every other algorithm's stream is unchanged.
 fn encode_checkpoint(bytes: &mut Vec<u8>, checkpoint: &Checkpoint) {
-    bytes.push(3);
+    let in_transit = checkpoint.transit_from.iter().any(Option::is_some);
+    bytes.push(if in_transit { 4 } else { 3 });
     put_u64(bytes, checkpoint.step);
     put_u32(bytes, checkpoint.agent_nodes.len() as u32);
     for (index, node) in checkpoint.agent_nodes.iter().enumerate() {
@@ -946,6 +962,12 @@ fn encode_checkpoint(bytes: &mut Vec<u8>, checkpoint: &Checkpoint) {
                 .get(index)
                 .and_then(|node| node.map(|value| value.0)),
         );
+    }
+    if in_transit {
+        for index in 0..checkpoint.agent_nodes.len() {
+            let from = checkpoint.transit_from.get(index).copied().flatten();
+            put_optional_u32(bytes, from.map(|node| node.0));
+        }
     }
 }
 
@@ -1109,6 +1131,7 @@ mod tests {
                 agent_statuses: Vec::new(),
                 home_nodes: Vec::new(),
                 settled_agents: Vec::new(),
+                transit_from: Vec::new(),
             }],
         };
         let payload = encode_trace(&trace, false);

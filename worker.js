@@ -54,10 +54,11 @@ self.onmessage = async ({ data }) => {
     // The dashboard asks for many small runs at once. Looping here keeps the
     // main thread free and avoids a postMessage round trip per data point.
     try {
-      const algorithm = selectorFor(data.algorithm);
       const results = [];
       for (let i = 0; i < data.jobs.length; i++) {
         const job = data.jobs[i];
+        // A job may name its own algorithm; the schedule comparison does.
+        const algorithm = selectorFor(job.algorithm ?? data.algorithm);
         const simulation = new wasm.WasmSimulation(
           job.nodeCount, new Uint32Array(job.edges), new Uint32Array(job.starts),
           algorithm, wasm.TraceMode.Off, BigInt(job.roundLimit), 0, 1,
@@ -69,6 +70,7 @@ self.onmessage = async ({ data }) => {
           moves: Number(output.moves()),
           probes: Number(output.probes()),
           completed: output.termination_code() === 0,
+          positions: output.positions(),
         });
         output.free();
         simulation.free();

@@ -31,6 +31,11 @@
         <section class="control-section"><h2><span class="step" aria-hidden="true">1</span>Algorithm</h2>
           <label>Algorithm<select id="algorithm"><option value="drop">Drop and Freeze</option><option value="help">Help by Scouts</option><option value="p1tree">P1Tree</option><option value="rooted_async">RootedAsync</option></select></label>
           <label id="scheduleWrap" class="hidden">Schedule<select id="schedule"><option value="sync">Synchronous (rounds)</option><option value="async">Asynchronous (epochs)</option></select></label>
+          <div id="compareWrap" class="compare hidden">
+            <button id="compareSchedules" class="secondary" type="button">Compare schedules</button>
+            <p class="hint">Runs this input synchronously and under three seeded asynchronous orders. The final placement must agree.</p>
+            <table id="compareTable" class="compare-table hidden" aria-label="Schedule comparison"></table>
+          </div>
         </section>
 
         <section class="control-section"><h2><span class="step" aria-hidden="true">2</span>Graph</h2>
@@ -39,8 +44,10 @@
         </section>
 
         <section class="control-section"><h2><span class="step" aria-hidden="true">3</span>Agents</h2>
-          <label>Initial placement<select id="placement"><option value="rooted">Rooted at node 0</option><option value="spread">Seeded distinct nodes</option></select></label>
+          <label>Initial placement<select id="placement"><option value="rooted">Rooted at node 0</option><option value="groups">Seeded groups</option></select></label>
+          <p id="placementNote" class="hint hidden">Help by Scouts, P1Tree and RootedAsync start every agent at node 0; only Drop and Freeze takes groups.</p>
           <div class="two-col"><label>Agents<input id="agents" type="number" min="1" max="10000" value="5" inputmode="numeric"></label><label>Seed<input id="seed" type="number" min="0" max="4294967295" value="42" inputmode="numeric"></label></div>
+          <label id="groupsWrap" class="hidden">Groups<input id="groups" type="number" min="1" max="10000" value="3" inputmode="numeric" title="Agents are dealt round-robin onto this many seeded nodes"></label>
         </section>
 
         <section class="control-section"><h2><span class="step" aria-hidden="true">4</span>Run &amp; trace</h2>
@@ -86,11 +93,12 @@
         <button id="prev" type="button" disabled aria-label="Previous frame">‹</button><button id="play" type="button" disabled aria-label="Play or pause">▶</button><button id="next" type="button" disabled aria-label="Next frame">›</button>
         <input id="timeline" type="range" min="0" max="0" value="0" disabled aria-label="Playback timeline">
         <span id="frameLabel">Frame 0 / 0</span>
+        <span id="probeInfo" class="probe-info" aria-live="polite"></span>
         <label class="speed">Playback speed <output id="speedValue">240 ms</output><input id="speed" type="range" min="40" max="1000" step="20" value="240"></label>
       </div>
 
       <div class="view-bar">
-        <div class="legend"><span><i class="dot settled"></i> settled</span><span><i class="dot waiting"></i> waiting / scout</span><span><i class="dot unsettled"></i> unsettled</span><span id="legendTip" class="legend-tip">Hover a node for details</span></div>
+        <div class="legend"><span><i class="dot settled"></i> settled</span><span><i class="dot waiting"></i> waiting / scout</span><span><i class="dot unsettled"></i> unsettled</span><span><i class="dot home"></i> scout's home</span><span><i class="dot probing"></i> head probing</span><span id="legendTip" class="legend-tip">Hover a node for details</span></div>
         <div class="view-filters" role="group" aria-label="Display filters"><span class="view-filters-title">Show</span><label><input id="showEdges" type="checkbox" checked> Edges</label><label><input id="showPorts" type="checkbox" checked> Port labels</label><label><input id="showAgents" type="checkbox" checked> Agents</label><label><input id="showSettled" type="checkbox" checked> Settled</label><label><input id="showUnsettled" type="checkbox" checked> Unsettled</label><label><input id="showScout" type="checkbox" checked> Scouts / waiting</label></div>
       </div>
     </main>

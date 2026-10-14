@@ -973,6 +973,7 @@ impl<'a, M: Metrics, R: Recorder> Simulation<'a, M, R> {
                 .collect(),
             home_nodes: self.agents.iter().map(|agent| agent.home).collect(),
             settled_agents: self.settled_at.clone(),
+            transit_from: Vec::new(),
         });
         self.step = self.step.saturating_add(1);
     }

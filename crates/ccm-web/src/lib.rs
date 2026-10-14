@@ -79,9 +79,17 @@ pub struct Config {
     pub max_trace_records: usize,
     #[serde(rename = "sampleEvery")]
     pub sample_every: usize,
+    /// How many nodes the agents start grouped on under the `groups`
+    /// placement. Defaulted so older exports still import.
+    #[serde(default = "default_groups")]
+    pub groups: usize,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+const fn default_groups() -> usize {
+    3
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Frame {
     pub step: u64,
     pub positions: Vec<u32>,
@@ -89,7 +97,37 @@ pub struct Frame {
     pub homes: Vec<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<u8>,
+    /// For each agent on an edge, the node it left (`-1` otherwise);
+    /// `positions` then holds the node it is heading for. Empty for
+    /// algorithms whose agents move atomically.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub transit: Vec<i32>,
+    /// Probes the head concluded since the previous frame (`RootedAsync`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub probes: Vec<ProbeNote>,
 }
+
+/// One probe the head concluded: the port, the rule that decided it, and the
+/// agent found to own the neighbour (`-1` for an empty one).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ProbeNote {
+    pub head: u32,
+    pub port: u16,
+    pub rule: u8,
+    pub owner: i32,
+}
+
+/// The rule codes `RootedAsync` records, in the order of
+/// `ProbeRule::code`.
+const PROBE_RULES: [&str; 7] = [
+    "R1",
+    "R3a-i",
+    "R3a-ii",
+    "R3b",
+    "R3c-i",
+    "R3c-ii(\u{3b1})",
+    "R3c-ii(\u{3b2})",
+];
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ResultData {
@@ -165,6 +203,8 @@ struct AppState {
     /// CSS size the cached layout was computed for, so a resize event that does
     /// not actually change the box does not rebuild it.
     layout_size: (f64, f64),
+    /// The seed of the schedule comparison in flight, if one is.
+    compare_seed: Option<u32>,
 }
 
 fn element<T: JsCast>(document: &Document, id: &str) -> T {
@@ -403,12 +443,56 @@ pub(crate) fn effective_algorithm(document: &Document) -> String {
     }
 }
 
-/// Shows the Schedule menu only for the algorithm it applies to.
+/// Shows the Schedule menu, and on the simulator page the comparison, only
+/// for the algorithm they apply to.
 pub(crate) fn sync_schedule_menu(document: &Document) {
-    let hidden = select_value(document, "algorithm") != "rooted_async";
-    let _ = element::<Element>(document, "scheduleWrap")
-        .class_list()
-        .toggle_with_force("hidden", hidden);
+    let algorithm = select_value(document, "algorithm");
+    let hidden = algorithm != "rooted_async";
+    for id in ["scheduleWrap", "compareWrap"] {
+        if let Some(wrap) = document.get_element_by_id(id) {
+            let _ = wrap.class_list().toggle_with_force("hidden", hidden);
+        }
+    }
+    sync_placement(document, needs_rooted_start(&algorithm));
+}
+
+/// Help by Scouts, P1Tree and `RootedAsync` are defined for a rooted start
+/// only; any other placement makes the engine refuse or break the run.
+fn needs_rooted_start(algorithm: &str) -> bool {
+    matches!(algorithm, "help" | "p1tree" | "rooted_async")
+}
+
+/// Shows the Groups count only for the grouped placement.
+fn sync_groups_input(document: &Document) {
+    if let Some(wrap) = document.get_element_by_id("groupsWrap") {
+        let hidden = select_value(document, "placement") != "groups";
+        let _ = wrap.class_list().toggle_with_force("hidden", hidden);
+    }
+}
+
+/// Locks the simulator's placement to node 0 while a rooted-only algorithm
+/// is chosen, and says why. The dashboard has no placement menu.
+fn sync_placement(document: &Document, rooted_only: bool) {
+    let Some(placement) = document
+        .get_element_by_id("placement")
+        .and_then(|e| e.dyn_into::<HtmlSelectElement>().ok())
+    else {
+        return;
+    };
+    if rooted_only {
+        placement.set_value("rooted");
+    }
+    if let Ok(Some(groups)) = placement.query_selector("option[value=groups]") {
+        let _ = if rooted_only {
+            groups.set_attribute("disabled", "")
+        } else {
+            groups.remove_attribute("disabled")
+        };
+    }
+    sync_groups_input(document);
+    if let Some(note) = document.get_element_by_id("placementNote") {
+        let _ = note.class_list().toggle_with_force("hidden", !rooted_only);
+    }
 }
 
 /// What the round counter holds: rounds, or, under an asynchronous schedule,
@@ -438,6 +522,7 @@ fn read_config(document: &Document) -> Config {
         trace_mode: select_value(document, "traceMode"),
         max_trace_records: number(document, "traceLimit", 600, 0, 1_000_000),
         sample_every: number(document, "sampleEvery", 4, 1, 1_000_000),
+        groups: number(document, "groups", 3, 1, agent_count),
     }
 }
 
@@ -447,7 +532,7 @@ fn initial_frame(starts: &[u32]) -> Frame {
         positions: starts.to_vec(),
         statuses: vec![1; starts.len()],
         homes: vec![-1; starts.len()],
-        label: None,
+        ..Frame::default()
     }
 }
 
@@ -457,7 +542,7 @@ fn final_frame(result: &ResultData) -> Frame {
         positions: result.positions.clone(),
         statuses: result.statuses.clone(),
         homes: result.homes.clone(),
-        label: None,
+        ..Frame::default()
     }
 }
 
@@ -525,6 +610,8 @@ fn trace_frames(bytes: &[u8], starts: &[u32], result: &ResultData) -> Vec<Frame>
     }
     let mut frames = Vec::new();
     let mut current = initial.clone();
+    // Probes concluded since the last checkpoint, shown with the next one.
+    let mut pending_probes: Vec<ProbeNote> = Vec::new();
     for _ in 0..count {
         let record_type = match reader.u8() {
             Some(v) => v,
@@ -561,6 +648,7 @@ fn trace_frames(bytes: &[u8], starts: &[u32], result: &ResultData) -> Vec<Frame>
                 statuses,
                 homes: vec![-1; count],
                 label: Some(label),
+                ..Frame::default()
             });
             continue;
         }
@@ -573,6 +661,20 @@ fn trace_frames(bytes: &[u8], starts: &[u32], result: &ResultData) -> Vec<Frame>
                     Some(v) => v,
                     None => break,
                 };
+                if event == 7 {
+                    let (Some(head), Some(port), Some(rule), Some(owner)) =
+                        (reader.u32(), reader.u16(), reader.u8(), reader.optional(4))
+                    else {
+                        break;
+                    };
+                    pending_probes.push(ProbeNote {
+                        head,
+                        port,
+                        rule,
+                        owner,
+                    });
+                    continue;
+                }
                 let mut next = current.clone();
                 next.step = step;
                 match event {
@@ -646,7 +748,7 @@ fn trace_frames(bytes: &[u8], starts: &[u32], result: &ResultData) -> Vec<Frame>
                 current = next.clone();
                 frames.push(next);
             }
-            3 => {
+            3 | 4 => {
                 let count = match reader.u32() {
                     Some(v) => v as usize,
                     None => break,
@@ -665,12 +767,21 @@ fn trace_frames(bytes: &[u8], starts: &[u32], result: &ResultData) -> Vec<Frame>
                     });
                     homes.push(reader.optional(4).unwrap_or(-1));
                 }
+                let mut transit = Vec::new();
+                if record_type == 4 {
+                    transit.reserve(count);
+                    for _ in 0..count {
+                        transit.push(reader.optional(4).unwrap_or(-1));
+                    }
+                }
                 current = Frame {
                     step,
                     positions,
                     statuses,
                     homes,
                     label: None,
+                    transit,
+                    probes: std::mem::take(&mut pending_probes),
                 };
                 frames.push(current.clone());
             }
@@ -717,6 +828,43 @@ fn update_frame_label(app: &AppState) {
             app.frames.len().saturating_sub(1)
         ),
     );
+    set_text(
+        &app.document,
+        "probeInfo",
+        &app.frames
+            .get(app.frame)
+            .map_or_else(String::new, frame_caption),
+    );
+}
+
+/// What a `RootedAsync` frame adds to the picture: the probes the head just
+/// concluded, and how many agents are on edges.
+fn frame_caption(frame: &Frame) -> String {
+    let mut parts = Vec::new();
+    if let Some(head) = frame.probes.first().map(|p| p.head) {
+        let probes: Vec<String> = frame
+            .probes
+            .iter()
+            .map(|p| {
+                let rule = PROBE_RULES.get(usize::from(p.rule)).copied().unwrap_or("?");
+                let found = match (p.owner, p.rule) {
+                    (-1, _) => "empty".to_owned(),
+                    (owner, 0) => format!("occupied by agent {owner}"),
+                    (owner, _) => format!("vacated, owner agent {owner} is scouting"),
+                };
+                format!("port {} \u{2192} {rule}: {found}", p.port)
+            })
+            .collect();
+        parts.push(format!("Head at node {head} probed {}", probes.join("; ")));
+    }
+    let moving = frame.transit.iter().filter(|&&from| from >= 0).count();
+    if moving > 0 {
+        parts.push(format!(
+            "{moving} agent{} on an edge",
+            if moving == 1 { "" } else { "s" }
+        ));
+    }
+    parts.join(" \u{b7} ")
 }
 
 fn set_timeline(app: &AppState) {
@@ -1294,6 +1442,8 @@ fn render(state: &Rc<RefCell<AppState>>) {
     let show_agents = checked(&app.document, "showAgents");
     let draw_individuals = show_agents && graph.node_count <= 2500;
     let mut by_node: Vec<Vec<usize>> = vec![Vec::new(); points.len()];
+    // Agents on an edge are drawn along it rather than at either end.
+    let mut moving: Vec<(usize, usize, usize)> = Vec::new();
     if show_agents {
         for (agent, node) in frame.positions.iter().enumerate() {
             let status = frame.statuses.get(agent).copied().unwrap_or(1);
@@ -1303,7 +1453,10 @@ fn render(state: &Rc<RefCell<AppState>>) {
                 _ => checked(&app.document, "showUnsettled"),
             };
             if visible {
-                if let Some(bucket) = by_node.get_mut(*node as usize) {
+                let from = frame.transit.get(agent).copied().unwrap_or(-1);
+                if from >= 0 {
+                    moving.push((agent, from as usize, *node as usize));
+                } else if let Some(bucket) = by_node.get_mut(*node as usize) {
                     bucket.push(agent);
                 }
             }
@@ -1403,6 +1556,70 @@ fn render(state: &Rc<RefCell<AppState>>) {
                 context.fill();
             }
         }
+    }
+    draw_rooted_async_overlay(&context, frame, &points, radius, &moving, &app.document);
+}
+
+/// `RootedAsync`'s extra layer: a dashed ring on the home of every scout that
+/// is away from it, a ring on the head while it probes, and each agent on an
+/// edge drawn halfway along that edge.
+fn draw_rooted_async_overlay(
+    context: &CanvasRenderingContext2d,
+    frame: &Frame,
+    points: &[(f64, f64)],
+    radius: f64,
+    moving: &[(usize, usize, usize)],
+    document: &Document,
+) {
+    let dashed = Array::of2(&3.0.into(), &3.0.into());
+    if checked(document, "showScout") {
+        let _ = context.set_line_dash(&dashed);
+        context.set_stroke_style_str(COLORS[2]);
+        context.set_line_width(1.5);
+        for (agent, &home) in frame.homes.iter().enumerate() {
+            let away = frame.statuses.get(agent) == Some(&2)
+                && home >= 0
+                && (frame.positions.get(agent) != Some(&(home as u32))
+                    || frame.transit.get(agent).is_some_and(|&from| from >= 0));
+            if let (true, Some(point)) = (away, points.get(home as usize)) {
+                context.begin_path();
+                let _ = context.arc(point.0, point.1, radius + 4.5, 0.0, std::f64::consts::TAU);
+                context.stroke();
+            }
+        }
+        let _ = context.set_line_dash(&Array::new());
+    }
+    if let Some(point) = frame
+        .probes
+        .first()
+        .and_then(|p| points.get(p.head as usize))
+    {
+        context.set_stroke_style_str("#7c8cff");
+        context.set_line_width(2.5);
+        context.begin_path();
+        let _ = context.arc(point.0, point.1, radius + 8.0, 0.0, std::f64::consts::TAU);
+        context.stroke();
+    }
+    for &(agent, from, to) in moving {
+        let (Some(a), Some(b)) = (points.get(from), points.get(to)) else {
+            continue;
+        };
+        let (x, y) = ((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0);
+        context.set_fill_style_str(
+            COLORS[frame.statuses.get(agent).copied().unwrap_or(0) as usize % 3],
+        );
+        context.set_stroke_style_str("#0b1020");
+        context.set_line_width(1.5);
+        context.begin_path();
+        let _ = context.arc(
+            x,
+            y,
+            (2.5_f64).max(radius * 0.6),
+            0.0,
+            std::f64::consts::TAU,
+        );
+        context.fill();
+        context.stroke();
     }
 }
 
@@ -1672,6 +1889,13 @@ fn create_worker(state: &Rc<RefCell<AppState>>) {
             say(&app.document, &message, "error");
             drop(app);
             set_busy(&ready_state, false);
+        } else if typ == "sweep-result" {
+            let seed = app.compare_seed.unwrap_or(0);
+            let results = Reflect::get(&data, &"results".into()).unwrap_or(JsValue::NULL);
+            show_comparison(&app.document, seed, &results);
+            drop(app);
+            ready_state.borrow_mut().compare_seed = None;
+            set_busy(&ready_state, false);
         } else if typ == "result" {
             let result = Reflect::get(&data, &"result".into())
                 .map_err(|_| "worker response did not contain a result".to_owned())
@@ -1717,6 +1941,10 @@ fn run(state: &Rc<RefCell<AppState>>) {
         say(&document, "Agents cannot exceed nodes.", "error");
         return;
     }
+    if needs_rooted_start(&select_value(&document, "algorithm")) && config.placement != "rooted" {
+        say(&document, "Help by Scouts, P1Tree and RootedAsync need every agent to start at node 0. Choose \u{201c}Rooted at node 0\u{201d}.", "error");
+        return;
+    }
     if config.family == "complete" && config.node_count > 500 {
         say(&document, "Complete graphs are capped at 500 nodes in the visualizer; use the native CLI for larger dense cases.", "error");
         return;
@@ -1732,18 +1960,7 @@ fn run(state: &Rc<RefCell<AppState>>) {
             "busy",
         );
     }
-    let graph = make_graph_full(
-        &config.family,
-        config.node_count,
-        config.grid_columns,
-        config.tree_branching,
-        config.seed,
-    );
-    let starts = if config.placement == "rooted" {
-        vec![0; config.agent_count]
-    } else {
-        seeded_shuffle(config.node_count, config.seed)[..config.agent_count].to_vec()
-    };
+    let (graph, starts) = prepared_input(&config);
     {
         let mut app = state.borrow_mut();
         app.config = Some(config.clone());
@@ -1770,6 +1987,165 @@ fn run(state: &Rc<RefCell<AppState>>) {
             set_busy(state, false);
         }
     }
+}
+
+/// The graph and starting nodes a configuration describes.
+fn prepared_input(config: &Config) -> (Graph, Vec<u32>) {
+    let graph = make_graph_full(
+        &config.family,
+        config.node_count,
+        config.grid_columns,
+        config.tree_branching,
+        config.seed,
+    );
+    (graph, start_nodes(config))
+}
+
+/// Where the agents start. `rooted` puts them all on node 0; `groups` deals
+/// them round-robin onto `groups` seeded distinct nodes, so several nodes
+/// each hold a crowd. An export from before groups existed may say
+/// `spread`, which is one agent per node.
+fn start_nodes(config: &Config) -> Vec<u32> {
+    let groups = match config.placement.as_str() {
+        "rooted" => return vec![0; config.agent_count],
+        "spread" => config.agent_count,
+        _ => config.groups,
+    }
+    .clamp(1, config.agent_count.min(config.node_count).max(1));
+    let nodes = seeded_shuffle(config.node_count, config.seed);
+    (0..config.agent_count)
+        .map(|agent| nodes[agent % groups])
+        .collect()
+}
+
+/// The schedules a comparison runs, in table order: the label shown, the
+/// algorithm name the worker takes, and the seed of the random order.
+fn comparison_schedules(seed: u32) -> [(String, &'static str, u32); 4] {
+    let s = |offset: u32| seed.wrapping_add(offset);
+    [
+        ("Synchronous".to_owned(), "rooted_async", 0),
+        (
+            format!("Asynchronous, seed {}", s(0)),
+            "rooted_async_random",
+            s(0),
+        ),
+        (
+            format!("Asynchronous, seed {}", s(1)),
+            "rooted_async_random",
+            s(1),
+        ),
+        (
+            format!("Asynchronous, seed {}", s(2)),
+            "rooted_async_random",
+            s(2),
+        ),
+    ]
+}
+
+/// Runs `RootedAsync` on the current input under the synchronous schedule and
+/// three seeded random ones, so the schedules can be compared side by side.
+fn compare_schedules(state: &Rc<RefCell<AppState>>) {
+    let document = state.borrow().document.clone();
+    let config = read_config(&document);
+    if config.placement != "rooted" {
+        say(
+            &document,
+            "RootedAsync needs every agent rooted at node 0.",
+            "error",
+        );
+        return;
+    }
+    if config.agent_count > config.node_count {
+        say(&document, "Agents cannot exceed nodes.", "error");
+        return;
+    }
+    let (graph, starts) = prepared_input(&config);
+    let jobs = Array::new();
+    for (_, algorithm, seed) in comparison_schedules(config.seed) {
+        let job = Object::new();
+        let _ = Reflect::set(&job, &"algorithm".into(), &algorithm.into());
+        let _ = Reflect::set(&job, &"seed".into(), &seed.into());
+        let _ = Reflect::set(&job, &"nodeCount".into(), &(graph.node_count as u32).into());
+        let _ = Reflect::set(
+            &job,
+            &"edges".into(),
+            &Uint32Array::from(graph.edges.as_slice()),
+        );
+        let _ = Reflect::set(
+            &job,
+            &"starts".into(),
+            &Uint32Array::from(starts.as_slice()),
+        );
+        let _ = Reflect::set(
+            &job,
+            &"roundLimit".into(),
+            &(config.round_limit as f64).into(),
+        );
+        jobs.push(&job);
+    }
+    let message = Object::new();
+    let _ = Reflect::set(&message, &"type".into(), &"sweep".into());
+    let _ = Reflect::set(&message, &"algorithm".into(), &"rooted_async".into());
+    let _ = Reflect::set(&message, &"jobs".into(), &jobs);
+    state.borrow_mut().compare_seed = Some(config.seed);
+    set_busy(state, true);
+    say(
+        &document,
+        "Running the same input under four schedules…",
+        "busy",
+    );
+    create_worker(state);
+    let worker = state.borrow().worker.clone();
+    if let Some(worker) = worker {
+        if worker.post_message(&message).is_err() {
+            say(&document, "Unable to start the Rust worker.", "error");
+            set_busy(state, false);
+        }
+    }
+}
+
+/// Fills the comparison table from the worker's results.
+fn show_comparison(document: &Document, seed: u32, results: &JsValue) {
+    let rows = Array::from(results);
+    let read = |row: &JsValue, name: &str| Reflect::get(row, &name.into()).ok();
+    let number =
+        |row: &JsValue, name: &str| read(row, name).and_then(|v| v.as_f64()).unwrap_or(0.0);
+    let placement = |row: &JsValue| {
+        read(row, "positions")
+            .map(|v| Uint32Array::new(&v).to_vec())
+            .unwrap_or_default()
+    };
+    let reference = placement(&rows.get(0));
+    let mut html = String::from(
+        "<thead><tr><th>Schedule</th><th>Time</th><th>Moves</th><th>Probes</th>\
+         <th>Same placement</th></tr></thead><tbody>",
+    );
+    for (index, (label, _, _)) in comparison_schedules(seed).iter().enumerate() {
+        let row = rows.get(index as u32);
+        let completed = read(&row, "completed").and_then(|v| v.as_bool()) == Some(true);
+        let unit = if index == 0 { "rounds" } else { "epochs" };
+        let same = if placement(&row) == reference {
+            "yes"
+        } else {
+            "NO"
+        };
+        html.push_str(&format!(
+            "<tr><td>{label}</td><td>{} {unit}{}</td><td>{}</td><td>{}</td><td>{same}</td></tr>",
+            number(&row, "rounds"),
+            if completed { "" } else { " (limit)" },
+            number(&row, "moves"),
+            number(&row, "probes"),
+        ));
+    }
+    html.push_str("</tbody>");
+    let table: Element = element(document, "compareTable");
+    table.set_inner_html(&html);
+    let _ = table.class_list().remove_1("hidden");
+    say(
+        document,
+        "Compared four schedules. Rounds and epochs measure different things; the placement is what must agree.",
+        "ok",
+    );
 }
 
 fn cancel(state: &Rc<RefCell<AppState>>) {
@@ -2129,9 +2505,11 @@ pub fn start() -> Result<(), JsValue> {
         timer: None,
         layout: Vec::new(),
         layout_size: (0.0, 0.0),
+        compare_seed: None,
     }));
     hook_click(&state, "run", run);
     hook_click(&state, "cancel", cancel);
+    hook_click(&state, "compareSchedules", compare_schedules);
     hook_click(&state, "export", export_json);
     hook_click(&state, "prev", |s| {
         let next = s.borrow().frame as isize - 1;
@@ -2207,6 +2585,14 @@ pub fn start() -> Result<(), JsValue> {
         closure.forget();
     }
     {
+        let placement: HtmlSelectElement = element(&document, "placement");
+        let document = document.clone();
+        let closure = Closure::<dyn FnMut(Event)>::new(move |_| sync_groups_input(&document));
+        let _ =
+            placement.add_event_listener_with_callback("change", closure.as_ref().unchecked_ref());
+        closure.forget();
+    }
+    {
         let algorithm: HtmlSelectElement = element(&document, "algorithm");
         let document = document.clone();
         let closure = Closure::<dyn FnMut(Event)>::new(move |_| sync_schedule_menu(&document));
@@ -2214,6 +2600,8 @@ pub fn start() -> Result<(), JsValue> {
             algorithm.add_event_listener_with_callback("change", closure.as_ref().unchecked_ref());
         closure.forget();
     }
+    // The browser may restore the menus on reload, so sync them once now.
+    sync_schedule_menu(&document);
     let trace: HtmlSelectElement = element(&document, "traceMode");
     {
         let document = document.clone();
@@ -2378,6 +2766,36 @@ fn tooltip(state: &Rc<RefCell<AppState>>, event: MouseEvent) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn grouped_placement_crowds_a_few_nodes() {
+        let config = |placement: &str, groups: usize| Config {
+            algorithm: "drop".to_owned(),
+            family: "path".to_owned(),
+            placement: placement.to_owned(),
+            node_count: 26,
+            agent_count: 7,
+            seed: 42,
+            round_limit: 500,
+            grid_columns: 5,
+            tree_branching: 2,
+            trace_mode: "full".to_owned(),
+            max_trace_records: 600,
+            sample_every: 4,
+            groups,
+        };
+        assert_eq!(start_nodes(&config("rooted", 3)), vec![0; 7]);
+        let grouped = start_nodes(&config("groups", 3));
+        let distinct: BTreeSet<u32> = grouped.iter().copied().collect();
+        assert_eq!(distinct.len(), 3);
+        assert_eq!(grouped, start_nodes(&config("groups", 3)));
+        // More groups than agents is clamped to one agent per node, which is
+        // also what an old `spread` export means.
+        assert_eq!(
+            start_nodes(&config("groups", 99)),
+            start_nodes(&config("spread", 1))
+        );
+    }
+
     #[test]
     fn graph_families_are_deterministic() {
         assert_eq!(make_graph("path", 4, 2).edges, vec![0, 1, 1, 2, 2, 3]);
