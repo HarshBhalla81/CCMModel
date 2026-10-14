@@ -18,6 +18,9 @@ use web_sys::{
     ResizeObserver, Worker,
 };
 
+/// Shown when the engine and this page come from different deployments.
+const STALE_PAGE: &str = "This site was updated after the page was opened, so playback would be incomplete. Reload the page (Ctrl+F5) and run again.";
+
 const COLORS: [&str; 3] = ["#39d3b4", "#ff7183", "#f6b44f"];
 const MAX_IMPORT_EDGES: usize = 200_000;
 const MAX_IMPORT_FRAMES: usize = 1_000_002;
@@ -589,11 +592,21 @@ impl<'a> Reader<'a> {
     }
 }
 
+#[cfg(test)]
 fn trace_frames(bytes: &[u8], starts: &[u32], result: &ResultData) -> Vec<Frame> {
+    read_trace(bytes, starts, result).0
+}
+
+/// Decodes the render trace into frames, and says whether every record was
+/// understood. A record this page does not know (from an engine newer than
+/// the page) ends decoding there; the caller must not pass that off as a
+/// complete playback.
+fn read_trace(bytes: &[u8], starts: &[u32], result: &ResultData) -> (Vec<Frame>, bool) {
     let initial = initial_frame(starts);
     if bytes.len() < 8 {
-        return vec![initial, final_frame(result)];
+        return (vec![initial, final_frame(result)], true);
     }
+    let mut understood = true;
     let mut reader = Reader::new(bytes);
     let (version, kind, _flags, _reserved, count) = match (
         reader.u8(),
@@ -603,10 +616,10 @@ fn trace_frames(bytes: &[u8], starts: &[u32], result: &ResultData) -> Vec<Frame>
         reader.u32(),
     ) {
         (Some(a), Some(b), Some(c), Some(d), Some(e)) => (a, b, c, d, e),
-        _ => return vec![initial],
+        _ => return (vec![initial], false),
     };
     if version != 1 {
-        return vec![initial];
+        return (vec![initial], false);
     }
     let mut frames = Vec::new();
     let mut current = initial.clone();
@@ -635,11 +648,11 @@ fn trace_frames(bytes: &[u8], starts: &[u32], result: &ResultData) -> Vec<Frame>
             for _ in 0..count {
                 positions.push(match reader.u32() {
                     Some(v) => v,
-                    None => return vec![initial],
+                    None => return (vec![initial], false),
                 });
                 statuses.push(match reader.u8() {
                     Some(v) => v,
-                    None => return vec![initial],
+                    None => return (vec![initial], false),
                 });
             }
             frames.push(Frame {
@@ -743,7 +756,10 @@ fn trace_frames(bytes: &[u8], starts: &[u32], result: &ResultData) -> Vec<Frame>
                         let _ = reader.u32();
                         let _ = reader.u8();
                     }
-                    _ => break,
+                    _ => {
+                        understood = false;
+                        break;
+                    }
                 }
                 current = next.clone();
                 frames.push(next);
@@ -785,7 +801,10 @@ fn trace_frames(bytes: &[u8], starts: &[u32], result: &ResultData) -> Vec<Frame>
                 };
                 frames.push(current.clone());
             }
-            _ => break,
+            _ => {
+                understood = false;
+                break;
+            }
         }
     }
     let final_state = final_frame(result);
@@ -795,7 +814,7 @@ fn trace_frames(bytes: &[u8], starts: &[u32], result: &ResultData) -> Vec<Frame>
     let mut output = Vec::with_capacity(frames.len() + 1);
     output.push(initial);
     output.extend(frames);
-    output
+    (output, understood)
 }
 
 fn checked(document: &Document, id: &str) -> bool {
@@ -1741,7 +1760,8 @@ fn termination(code: u8) -> &'static str {
 fn accept_result(state: &Rc<RefCell<AppState>>, result: ResultData) {
     let mut app = state.borrow_mut();
     let starts = app.starts.clone();
-    app.frames = trace_frames(&result.render_bytes, &starts, &result);
+    let (frames, understood) = read_trace(&result.render_bytes, &starts, &result);
+    app.frames = frames;
     app.frame = 0;
     app.result = Some(result.clone());
     let config = app.config.clone();
@@ -1778,19 +1798,23 @@ fn accept_result(state: &Rc<RefCell<AppState>>, result: ResultData) {
     }
     set_timeline(&app);
     set_disabled(&element::<HtmlElement>(&app.document, "export"), false);
-    say(
-        &app.document,
-        &format!(
-            "Completed with {} playback frames{}.",
-            app.frames.len(),
-            if result.render_truncated {
-                " (trace bounded)"
-            } else {
-                ""
-            }
-        ),
-        "",
-    );
+    if understood {
+        say(
+            &app.document,
+            &format!(
+                "Completed with {} playback frames{}.",
+                app.frames.len(),
+                if result.render_truncated {
+                    " (trace bounded)"
+                } else {
+                    ""
+                }
+            ),
+            "",
+        );
+    } else {
+        say(&app.document, STALE_PAGE, "error");
+    }
     drop(app);
     resize(state);
 }
@@ -1872,6 +1896,29 @@ fn create_worker(state: &Rc<RefCell<AppState>>) {
             .unwrap_or_default();
         let app = ready_state.borrow();
         if typ == "ready" {
+            // The worker fetches the newest engine on every run, but this page
+            // keeps the code it loaded with. After a deploy the two disagree on
+            // the trace format, so refuse the run rather than mis-play it.
+            let page_build = Reflect::get(&js_sys::global(), &"ccmBuildId".into())
+                .ok()
+                .and_then(|v| v.as_string())
+                .unwrap_or_default();
+            let engine_build = Reflect::get(&data, &"buildId".into())
+                .ok()
+                .and_then(|v| v.as_string())
+                .unwrap_or_default();
+            if !page_build.is_empty() && !engine_build.is_empty() && page_build != engine_build {
+                set_class(&app.document, "engineState", "engine-state error");
+                set_text(&app.document, "engineState", "Reload needed");
+                say(&app.document, STALE_PAGE, "error");
+                drop(app);
+                if let Some(worker) = ready_state.borrow_mut().worker.take() {
+                    worker.terminate();
+                }
+                ready_state.borrow_mut().compare_seed = None;
+                set_busy(&ready_state, false);
+                return;
+            }
             set_text(&app.document, "engineState", "WASM ready");
             set_class(&app.document, "engineState", "engine-state ready");
         } else if typ == "progress" {
@@ -2842,6 +2889,27 @@ mod tests {
             render_bytes: vec![1, 2, 0, 0, 1],
         };
         assert_eq!(trace_frames(&result.render_bytes, &[0], &result).len(), 2);
+    }
+
+    #[test]
+    fn an_unknown_trace_record_is_reported_not_skipped() {
+        // Header: version 1, kind 2, one record; then a record of a type no page
+        // knows. Playback must say it is incomplete rather than jump to the end.
+        let result = ResultData {
+            positions: vec![0],
+            statuses: vec![0],
+            homes: vec![0],
+            termination_code: 0,
+            rounds: 1,
+            moves: 0,
+            probes: 0,
+            render_record_count: 1,
+            render_truncated: false,
+            render_bytes: vec![1, 2, 0, 0, 1, 0, 0, 0, 99, 1, 0, 0, 0, 0, 0, 0, 0],
+        };
+        let (frames, understood) = read_trace(&result.render_bytes, &[0], &result);
+        assert!(!understood);
+        assert_eq!(frames.len(), 2);
     }
 
     #[test]

@@ -3,6 +3,7 @@
 let wasm = null;
 let loadError = null;
 let loadPromise = null;
+let buildId = '';
 
 async function load() {
   if (wasm || loadError) return wasm;
@@ -11,13 +12,13 @@ async function load() {
       try {
         const manifestResponse = await fetch('./wasm/web/manifest.json', { cache: 'no-store' });
         if (!manifestResponse.ok) throw new Error(`WASM manifest returned ${manifestResponse.status}`);
-        const { buildId } = await manifestResponse.json();
+        ({ buildId } = await manifestResponse.json());
         if (!buildId) throw new Error('WASM manifest has no build ID');
         const token = encodeURIComponent(buildId);
         const module = await import(`./wasm/web/ccm_wasm.js?v=${token}`);
         await module.default(`./wasm/web/ccm_wasm_bg.wasm?v=${token}`);
         wasm = module;
-        self.postMessage({ type: 'ready' });
+        self.postMessage({ type: 'ready', buildId });
         return wasm;
       } catch (error) {
         loadError = error;
@@ -45,7 +46,7 @@ function selectorFor(name) {
 self.onmessage = async ({ data }) => {
   if (data.type === 'ping') {
     if (!wasm) await load();
-    self.postMessage({ type: wasm ? 'ready' : 'error', message: loadError?.message });
+    self.postMessage({ type: wasm ? 'ready' : 'error', message: loadError?.message, buildId });
     return;
   }
   if (data.type === 'sweep') {
