@@ -3,7 +3,8 @@
 //!
 //! `drop_and_freeze` and `help_by_scouts` are legacy baselines that preserve
 //! historical behaviour. `p1tree` and `rooted_async` are written from their
-//! paper; `rooted_async` is not yet wired into the runner, CLI or browser. Every module is a
+//! paper: `p1tree` as a centralised, synchronous construction, and
+//! `rooted_async` agent by agent under any schedule. Every module is a
 //! self-contained, deterministic simulation over a `ccm_core::PortGraph`.
 //! Tests live in `ccm-experiments/tests`.
 

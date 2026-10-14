@@ -219,9 +219,10 @@ Reproduce the k ≤ 256 rows with
   Any other algorithm rejects a non-synchronous scheduler. `ccm events` prints
   one run's probes (with the rule that decided each) and DFS steps, each with
   its epoch. See `experiments/README.md`.
-- **Browser.** The simulator's algorithm menu has *RootedAsync (synchronous)*
-  and *RootedAsync (asynchronous)*. The asynchronous order is seeded from the
-  page's seed field, and the counter is labelled epochs instead of rounds.
+- **Browser.** The simulator's and dashboard's algorithm menus have a
+  *RootedAsync* entry. Choosing it reveals a *Schedule* menu: synchronous, or
+  asynchronous. The asynchronous order is seeded from the page's seed field,
+  and the counter is labelled epochs instead of rounds.
   Playback replays one snapshot per epoch. This was checked in headless Edge
   on the served page: both entries complete, the replay ends dispersed, and
   the page reports no errors.

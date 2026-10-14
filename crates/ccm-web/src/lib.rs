@@ -392,6 +392,25 @@ fn algorithm_label(value: &str) -> &'static str {
     }
 }
 
+/// The algorithm to run, as the worker names it: RootedAsync's schedule is
+/// chosen in its own menu but travels as part of the name.
+pub(crate) fn effective_algorithm(document: &Document) -> String {
+    let algorithm = select_value(document, "algorithm");
+    if algorithm == "rooted_async" && select_value(document, "schedule") == "async" {
+        "rooted_async_random".to_owned()
+    } else {
+        algorithm
+    }
+}
+
+/// Shows the Schedule menu only for the algorithm it applies to.
+pub(crate) fn sync_schedule_menu(document: &Document) {
+    let hidden = select_value(document, "algorithm") != "rooted_async";
+    let _ = element::<Element>(document, "scheduleWrap")
+        .class_list()
+        .toggle_with_force("hidden", hidden);
+}
+
 /// What the round counter holds: rounds, or, under an asynchronous schedule,
 /// epochs, the shortest intervals in which every agent completes a cycle.
 fn time_unit(algorithm: &str) -> &'static str {
@@ -407,7 +426,7 @@ fn read_config(document: &Document) -> Config {
     let agent_count = number(document, "agents", 5.min(node_count), 1, node_count);
     element::<HtmlInputElement>(document, "agents").set_value(&agent_count.to_string());
     Config {
-        algorithm: select_value(document, "algorithm"),
+        algorithm: effective_algorithm(document),
         family: select_value(document, "family"),
         placement: select_value(document, "placement"),
         node_count,
@@ -2185,6 +2204,14 @@ pub fn start() -> Result<(), JsValue> {
                 .toggle_with_force("hidden", family != "tree");
         });
         let _ = family.add_event_listener_with_callback("change", closure.as_ref().unchecked_ref());
+        closure.forget();
+    }
+    {
+        let algorithm: HtmlSelectElement = element(&document, "algorithm");
+        let document = document.clone();
+        let closure = Closure::<dyn FnMut(Event)>::new(move |_| sync_schedule_menu(&document));
+        let _ =
+            algorithm.add_event_listener_with_callback("change", closure.as_ref().unchecked_ref());
         closure.forget();
     }
     let trace: HtmlSelectElement = element(&document, "traceMode");

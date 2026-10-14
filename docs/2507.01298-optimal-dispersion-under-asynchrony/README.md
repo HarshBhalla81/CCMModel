@@ -39,12 +39,12 @@ cargo run --release -p ccm-experiments --example rooted_async_scaling
 ./target/release/ccm events --algorithm rooted-async --scheduler asynchronous --graph path --nodes 8 --agents 8
 ```
 
-In the browser, choose *RootedAsync (asynchronous)* from the simulator's
-algorithm menu.
+In the browser, choose *RootedAsync* from the simulator's algorithm menu,
+then *Asynchronous* from the *Schedule* menu that appears below it.
 
 ## A2 checklist
 
 - [x] Gap and trace note
 - [x] RootedAsync tests
 - [x] CLI (Stage 2): `--algorithm rooted-async`, `--scheduler`, `ccm events`
-- [x] Web demo (Stage 3): *RootedAsync (synchronous / asynchronous)* in the simulator's menu
+- [x] Web demo (Stage 3): *RootedAsync* in the simulator's menu, with a *Schedule* menu

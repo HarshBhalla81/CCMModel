@@ -127,7 +127,7 @@ fn read_config(document: &Document) -> SweepConfig {
     let agent_from = number(document, "agentFrom", 2, 1, nodes);
     let agent_to = number(document, "agentTo", nodes, agent_from, nodes);
     SweepConfig {
-        algorithm: select_value(document, "algorithm"),
+        algorithm: crate::effective_algorithm(document),
         families: FAMILIES
             .iter()
             .enumerate()
@@ -839,8 +839,10 @@ pub fn start_dashboard() -> Result<(), JsValue> {
     {
         let family: web_sys::HtmlSelectElement = element(&document, "algorithm");
         let document = document.clone();
+        let schedule: web_sys::HtmlSelectElement = element(&document, "schedule");
         let closure = Closure::<dyn FnMut()>::new(move || {
-            let algorithm = select_value(&document, "algorithm");
+            crate::sync_schedule_menu(&document);
+            let algorithm = crate::effective_algorithm(&document);
             set_text(
                 &document,
                 "algorithmNote",
@@ -857,6 +859,8 @@ pub fn start_dashboard() -> Result<(), JsValue> {
             );
         });
         let _ = family.add_event_listener_with_callback("change", closure.as_ref().unchecked_ref());
+        let _ =
+            schedule.add_event_listener_with_callback("change", closure.as_ref().unchecked_ref());
         closure.forget();
     }
     {
