@@ -160,11 +160,10 @@ pub struct P1Result {
     pub logical_steps: u64,
     /// Step at which the last agent settled, i.e. when dispersion was achieved.
     ///
-    /// The construction keeps running after this to finish the tree: Section 4
-    /// terminates when every node is `fullyVisited`, and it is that tail that
-    /// reconfigures the remaining `partiallyVisited` nodes. Dispersion is the
-    /// earlier event, so it is reported separately rather than being conflated
-    /// with termination.
+    /// Under the default [`Stop::AtDispersion`] the construction stops here.
+    /// Under [`Stop::AtFullTree`] it keeps running until the root is popped,
+    /// which is the tail that reconfigures the remaining `partiallyVisited`
+    /// nodes, so dispersion is reported separately from termination.
     pub dispersed_at_step: Option<u64>,
 }
 
@@ -348,11 +347,12 @@ impl<'a, M: Metrics, R: Recorder> Simulation<'a, M, R> {
     /// The `while S != {}` loop of Algorithm 2, with the stack realised by the
     /// parent pointers the settled agents hold.
     ///
-    /// The loop runs until the root is popped, which is Algorithm 2's own
-    /// termination. Stopping earlier, as soon as every agent had settled, left
-    /// nodes `partiallyVisited` with a `tpq` parent edge and so broke
-    /// Definition 1: it is exactly the walk back to the root that reconfigures
-    /// them.
+    /// Under [`Stop::AtDispersion`], the default, the loop ends as soon as every
+    /// agent has settled (Section 5). Under [`Stop::AtFullTree`] it runs until
+    /// the root is popped, Algorithm 2's own termination, which is the walk
+    /// that reconfigures any node still `partiallyVisited` and so makes the
+    /// tree satisfy Definition 1. Popping the root also ends the default run
+    /// if it comes first. Either way the caller runs Retrace afterwards.
     fn traverse(&mut self) -> Result<Termination, P1Error> {
         let mut rounds = 0_u64;
         loop {
@@ -650,8 +650,8 @@ impl<'a, M: Metrics, R: Recorder> Simulation<'a, M, R> {
             }
             NodeType::PartiallyVisited => {
                 // Reconfiguration (rule (D4)): the old tpq parent edge is
-                // dropped in set_parent above and this port-1 edge takes its
-                // place, which makes the node visited.
+                // replaced by this port-1 edge in set_parent below, which
+                // makes the node visited.
                 self.node_type[target.index()] = NodeType::Visited;
             }
             NodeType::Visited | NodeType::FullyVisited => {}

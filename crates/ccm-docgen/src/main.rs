@@ -129,19 +129,6 @@ fn edge_path(from: &Placed<'_>, to: &Placed<'_>, edge: &Edge) -> (String, f64, f
                 (sy + ty) / 2.0,
             )
         }
-        Route::Elbow => {
-            let sy = from.cy + from.half_h;
-            let ty = to.cy - to.half_h;
-            let mid = (sy + ty) / 2.0;
-            (
-                format!(
-                    "M {:.1} {sy:.1} L {:.1} {mid:.1} L {:.1} {mid:.1} L {:.1} {ty:.1}",
-                    from.cx, from.cx, to.cx, to.cx
-                ),
-                (from.cx + to.cx) / 2.0,
-                mid,
-            )
-        }
         Route::Around(side) => {
             // Out of the side, along a lane clear of the widest box involved,
             // and back in. The lane has to start beyond that box or the edge

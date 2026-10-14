@@ -28,86 +28,118 @@
 
     <div class="docs-main">
       <div id="charts" class="charts"><section class="chart-panel hidden" id="panel-drop" data-crate="ccm-algorithms">
-<p class="chart-blurb">Three phases per round. Unsettled agents fan out one per port, come back carrying one bit — was the neighbour occupied — and then one settles while the rest move on together through a port a probe reported empty. When no empty port is left the group backtracks along the port it arrived by.</p>
-<div class="chart-frame"><div class="chart-stage"><svg class="chart" viewBox="-564 -63 1141 770" role="img" aria-label="Drop and Freeze flowchart" xmlns="http://www.w3.org/2000/svg">
+<p class="chart-blurb">Three phases per round. Unsettled agents step out one per port and come back with one bit: is a settled agent there? On a node with no settler the lowest-ID agent settles. The rest move through the first empty port at or after the settler's cursor; if there is none the cursor moves on, and only once every port has been tried does the group backtrack along the settler's parent port. Several start nodes are allowed, and groups that meet merge.</p>
+<div class="chart-frame"><div class="chart-stage"><svg class="chart" viewBox="-655 -63 1310 1230" role="img" aria-label="Drop and Freeze flowchart" xmlns="http://www.w3.org/2000/svg">
 <defs><marker id="arrow-drop" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z"/></marker></defs>
 <g class="edges">
 <path class="edge" d="M 0.0 23.0 L 0.0 69.0" marker-end="url(#arrow-drop)"/>
 <path class="edge" d="M 0.0 115.0 L 0.0 153.0" marker-end="url(#arrow-drop)"/>
-<path class="edge" d="M -112.0 184.0 L -195.0 184.0" marker-end="url(#arrow-drop)"/><text class="edge-label" x="-153.5" y="184.0">yes</text>
+<path class="edge" d="M 112.0 184.0 L 286.0 184.0" marker-end="url(#arrow-drop)"/><text class="edge-label" x="199.0" y="184.0">yes</text>
 <path class="edge" d="M 0.0 215.0 L 0.0 245.0" marker-end="url(#arrow-drop)"/><text class="edge-label" x="0.0" y="230.0">no</text>
-<path class="edge" d="M -112.0 276.0 L -195.0 276.0" marker-end="url(#arrow-drop)"/><text class="edge-label" x="-153.5" y="276.0">no</text>
+<path class="edge" d="M 112.0 276.0 L 286.0 276.0" marker-end="url(#arrow-drop)"/><text class="edge-label" x="199.0" y="276.0">no</text>
 <path class="edge" d="M 0.0 307.0 L 0.0 345.0" marker-end="url(#arrow-drop)"/><text class="edge-label" x="0.0" y="326.0">yes</text>
 <path class="edge" d="M 0.0 391.0 L 0.0 437.0" marker-end="url(#arrow-drop)"/>
 <path class="edge" d="M 0.0 483.0 L 0.0 529.0" marker-end="url(#arrow-drop)"/>
-<path class="edge" d="M 0.0 575.0 L 0.0 621.0" marker-end="url(#arrow-drop)"/>
-<path class="edge" d="M 104.0 644.0 L 195.2 644.0 L 195.2 184.0 L 112.0 184.0" marker-end="url(#arrow-drop)"/><text class="edge-label" x="195.2" y="414.0">next round</text>
-<path class="edge aside" d="M 104.0 368.0 L 208.0 368.0" marker-end="url(#arrow-drop)"/><text class="edge-label" x="156.0" y="368.0">port order</text>
-<path class="edge aside" d="M 104.0 552.0 L 208.0 552.0" marker-end="url(#arrow-drop)"/><text class="edge-label" x="156.0" y="552.0">group size</text>
+<path class="edge" d="M 0.0 575.0 L 0.0 613.0" marker-end="url(#arrow-drop)"/>
+<path class="edge" d="M 112.0 644.0 L 234.0 644.0" marker-end="url(#arrow-drop)"/><text class="edge-label" x="173.0" y="644.0">yes</text>
+<path class="edge" d="M 0.0 675.0 L 0.0 713.0" marker-end="url(#arrow-drop)"/><text class="edge-label" x="0.0" y="694.0">no</text>
+<path class="edge" d="M 0.0 759.0 L 0.0 797.0" marker-end="url(#arrow-drop)"/>
+<path class="edge" d="M -70.2 859.0 L -319.8 943.0" marker-end="url(#arrow-drop)"/><text class="edge-label" x="-195.0" y="901.0">no</text>
+<path class="edge" d="M 0.0 859.0 L 0.0 889.0" marker-end="url(#arrow-drop)"/><text class="edge-label" x="0.0" y="874.0">yes</text>
+<path class="edge" d="M 0.0 951.0 L 0.0 989.0" marker-end="url(#arrow-drop)"/><text class="edge-label" x="0.0" y="970.0">yes</text>
+<path class="edge" d="M -112.0 924.6 L -286.0 961.7" marker-end="url(#arrow-drop)"/><text class="edge-label" x="-199.0" y="943.2">no: start node</text>
+<path class="edge" d="M 0.0 1035.0 L 0.0 1081.0" marker-end="url(#arrow-drop)"/>
+<path class="edge" d="M -319.8 989.0 L -70.2 1081.0" marker-end="url(#arrow-drop)"/>
+<path class="edge" d="M 442.0 644.0 L 483.6 644.0 L 483.6 1104.0 L 104.0 1104.0" marker-end="url(#arrow-drop)"/>
+<path class="edge" d="M -104.0 1104.0 L -195.2 1104.0 L -195.2 184.0 L -112.0 184.0" marker-end="url(#arrow-drop)"/><text class="edge-label" x="-195.2" y="644.0">next round</text>
+<path class="edge aside" d="M 104.0 368.0 L 234.0 368.0" marker-end="url(#arrow-drop)"/><text class="edge-label" x="169.0" y="368.0">port order</text>
+<path class="edge aside" d="M 104.0 736.0 L 234.0 736.0" marker-end="url(#arrow-drop)"/><text class="edge-label" x="169.0" y="736.0">how many</text>
 </g>
 <g class="nodes">
 <g id="drop-start" class="node entry has-code" data-fn="simulate_with" tabindex="0" role="button"><rect x="-104" y="-23" width="208" height="46" rx="23"/><text x="0.0" y="0.0">simulate_with()</text></g>
 <g id="drop-canon" class="node step has-code" data-fn="canonicalize_ports" tabindex="0" role="button"><rect x="-104" y="69" width="208" height="46" rx="9"/><text x="0.0" y="92.0">canonicalize_ports()</text></g>
-<g id="drop-settled" class="node decision"><polygon points="0,153 112,184 0,215 -112,184"/><text x="0.0" y="184.0">all_settled()?</text></g>
-<g id="drop-done" class="node terminal"><rect x="-403" y="161" width="208" height="46" rx="23"/><text x="-299.0" y="184.0">Completed</text></g>
-<g id="drop-limit" class="node decision"><polygon points="0,245 112,276 0,307 -112,276"/><text x="0.0" y="276.0">round &lt; limit?</text></g>
-<g id="drop-capped" class="node terminal"><rect x="-403" y="253" width="208" height="46" rx="23"/><text x="-299.0" y="276.0">RoundLimitReached</text></g>
+<g id="drop-settled" class="node decision"><polygon points="0,153 112,184 0,215 -112,184"/><text x="0.0" y="184.0">all settled?</text></g>
+<g id="drop-done" class="node terminal"><rect x="286" y="161" width="208" height="46" rx="23"/><text x="390.0" y="184.0">Completed</text></g>
+<g id="drop-limit" class="node decision"><polygon points="0,245 112,276 0,307 -112,276"/><text x="0.0" y="276.0">rounds left?</text></g>
+<g id="drop-capped" class="node terminal"><rect x="286" y="253" width="208" height="46" rx="23"/><text x="390.0" y="276.0">RoundLimitReached</text></g>
 <g id="drop-pout" class="node step has-code" data-fn="probe_out" tabindex="0" role="button"><rect x="-104" y="345" width="208" height="46" rx="9"/><text x="0.0" y="368.0">probe_out()</text></g>
-<g id="drop-pback" class="node step has-code" data-fn="probe_back" tabindex="0" role="button"><rect x="-104" y="437" width="208" height="46" rx="9"/><text x="0.0" y="460.0">probe_back()</text></g>
-<g id="drop-mout" class="node step has-code" data-fn="move_out" tabindex="0" role="button"><rect x="-104" y="529" width="208" height="46" rx="9"/><text x="0.0" y="552.0">move_out()</text></g>
-<g id="drop-valid" class="node step"><rect x="-104" y="621" width="208" height="46" rx="9"/><text x="0.0" y="644.0">validate_state()</text></g>
-<g id="drop-ports" class="node aside has-code" data-fn="ordered_ports" tabindex="0" role="button"><rect x="208" y="345" width="208" height="46" rx="9"/><text x="312.0" y="368.0">ordered_ports()</text></g>
-<g id="drop-scouts" class="node aside has-code" data-fn="scouts_for_count" tabindex="0" role="button"><rect x="208" y="529" width="208" height="46" rx="9"/><text x="312.0" y="552.0">scouts_for_count()</text></g>
+<g id="drop-ports" class="node aside has-code" data-fn="ordered_ports" tabindex="0" role="button"><rect x="234" y="345" width="208" height="46" rx="9"/><text x="338.0" y="368.0">ordered_ports()</text></g>
+<g id="drop-pback" class="node step has-code" data-fn="probe_back" tabindex="0" role="button"><rect x="-104" y="437" width="208" height="46" rx="9"/><text x="0.0" y="452.0">probe_back()</text><text x="0.0" y="468.0">bit: settler there?</text></g>
+<g id="drop-settle" class="node step has-code" data-fn="move_out" tabindex="0" role="button"><rect x="-104" y="529" width="208" height="46" rx="9"/><text x="0.0" y="544.0">move_out(): lowest ID</text><text x="0.0" y="560.0">settles if no settler</text></g>
+<g id="drop-found" class="node decision"><polygon points="0,613 112,644 0,675 -112,644"/><text x="0.0" y="636.0">empty port at</text><text x="0.0" y="652.0">or after cursor?</text></g>
+<g id="drop-fwd" class="node step"><rect x="234" y="621" width="208" height="46" rx="9"/><text x="338.0" y="636.0">move the group</text><text x="338.0" y="652.0">through it</text></g>
+<g id="drop-count" class="node step"><rect x="-104" y="713" width="208" height="46" rx="9"/><text x="0.0" y="728.0">cursor += ports</text><text x="0.0" y="744.0">probed</text></g>
+<g id="drop-scouts" class="node aside has-code" data-fn="scouts_for_count" tabindex="0" role="button"><rect x="234" y="713" width="208" height="46" rx="9"/><text x="338.0" y="736.0">scouts_for_count()</text></g>
+<g id="drop-tried" class="node decision"><polygon points="0,797 112,828 0,859 -112,828"/><text x="0.0" y="820.0">every port</text><text x="0.0" y="836.0">tried?</text></g>
+<g id="drop-stay" class="node step"><rect x="-494" y="943" width="208" height="46" rx="9"/><text x="-390.0" y="958.0">stay; probe the</text><text x="-390.0" y="974.0">next ports</text></g>
+<g id="drop-parent" class="node decision"><polygon points="0,889 112,920 0,951 -112,920"/><text x="0.0" y="920.0">parent port?</text></g>
+<g id="drop-back" class="node step"><rect x="-104" y="989" width="208" height="46" rx="9"/><text x="0.0" y="1004.0">backtrack along</text><text x="0.0" y="1020.0">the parent port</text></g>
+<g id="drop-valid" class="node step has-code" data-fn="validate_state" tabindex="0" role="button"><rect x="-104" y="1081" width="208" height="46" rx="9"/><text x="0.0" y="1104.0">validate_state()</text></g>
 </g>
 </svg>
 </div></div>
 </section>
 <section class="chart-panel hidden" id="panel-help" data-crate="ccm-algorithms">
-<p class="chart-blurb">Also a DFS, but settled agents help. One whose node can spare it vacates and travels with the group as a scout, so several ports are probed in the same round. Scouts later retrace the tree in post-order and drop back onto the nodes they own.</p>
-<div class="chart-frame"><div class="chart-stage"><svg class="chart" viewBox="-629 -63 1245 862" role="img" aria-label="Help by Scouts flowchart" xmlns="http://www.w3.org/2000/svg">
+<p class="chart-blurb">Also a DFS, but settled agents help. Each round the group probes the head's ports in parallel, and only then does the node's owner decide whether it can vacate; if it can, it travels on with the group as a scout for the next probe. When nobody is left unsettled, retrace walks the tree from where the group stands and drops each scout at its home the first time it gets there. Rooted starts only. Any step can hit the round limit, which ends the run there.</p>
+<div class="chart-frame"><div class="chart-stage"><svg class="chart" viewBox="-642 -63 1258 1046" role="img" aria-label="Help by Scouts flowchart" xmlns="http://www.w3.org/2000/svg">
 <defs><marker id="arrow-help" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z"/></marker></defs>
 <g class="edges">
 <path class="edge" d="M 0.0 23.0 L 0.0 69.0" marker-end="url(#arrow-help)"/>
 <path class="edge" d="M 0.0 115.0 L 0.0 153.0" marker-end="url(#arrow-help)"/>
-<path class="edge" d="M -112.0 193.9 L -298.5 253.0" marker-end="url(#arrow-help)"/><text class="edge-label" x="-205.2" y="223.5">no</text>
-<path class="edge" d="M 0.0 215.0 L 0.0 253.0" marker-end="url(#arrow-help)"/><text class="edge-label" x="0.0" y="234.0">yes</text>
-<path class="edge" d="M 0.0 299.0 L 0.0 337.0" marker-end="url(#arrow-help)"/>
-<path class="edge" d="M 112.0 368.0 L 221.0 368.0" marker-end="url(#arrow-help)"/><text class="edge-label" x="166.5" y="368.0">settledScout</text>
-<path class="edge" d="M 0.0 399.0 L 0.0 437.0" marker-end="url(#arrow-help)"/><text class="edge-label" x="0.0" y="418.0">settled</text>
-<path class="edge" d="M 266.5 391.0 L 58.5 437.0" marker-end="url(#arrow-help)"/>
+<path class="edge" d="M -112.0 191.2 L -273.0 246.3" marker-end="url(#arrow-help)"/><text class="edge-label" x="-192.5" y="218.8">no</text>
+<path class="edge" d="M 0.0 215.0 L 0.0 245.0" marker-end="url(#arrow-help)"/><text class="edge-label" x="0.0" y="230.0">yes</text>
+<path class="edge" d="M 0.0 307.0 L 0.0 345.0" marker-end="url(#arrow-help)"/><text class="edge-label" x="0.0" y="326.0">yes</text>
+<path class="edge" d="M 112.0 276.0 L 247.0 276.0" marker-end="url(#arrow-help)"/><text class="edge-label" x="179.5" y="276.0">no</text>
+<path class="edge" d="M 455.0 276.0 L 546.2 276.0 L 546.2 184.0 L 112.0 184.0" marker-end="url(#arrow-help)"/><text class="edge-label" x="546.2" y="230.0">check again</text>
+<path class="edge" d="M 0.0 391.0 L 0.0 437.0" marker-end="url(#arrow-help)"/>
 <path class="edge" d="M 0.0 483.0 L 0.0 521.0" marker-end="url(#arrow-help)"/>
-<path class="edge" d="M -2.3 583.0 L -10.7 621.0" marker-end="url(#arrow-help)"/><text class="edge-label" x="-6.5" y="602.0">port</text>
-<path class="edge" d="M 112.0 562.3 L 287.8 621.0" marker-end="url(#arrow-help)"/><text class="edge-label" x="199.9" y="591.6">none</text>
-<path class="edge" d="M -10.7 667.0 L -2.3 713.0" marker-end="url(#arrow-help)"/>
-<path class="edge" d="M 351.0 667.0 L 351.0 690.0 L 0.0 690.0 L 0.0 713.0" marker-end="url(#arrow-help)"/>
-<path class="edge" d="M 104.0 736.0 L 195.2 736.0 L 195.2 184.0 L 112.0 184.0" marker-end="url(#arrow-help)"/><text class="edge-label" x="195.2" y="460.0">next</text>
-<path class="edge" d="M -364.0 299.0 L -364.0 345.0" marker-end="url(#arrow-help)"/>
-<path class="edge" d="M -364.0 391.0 L -364.0 437.0" marker-end="url(#arrow-help)"/>
-<path class="edge aside" d="M 104.0 460.0 L 221.0 460.0" marker-end="url(#arrow-help)"/><text class="edge-label" x="162.5" y="460.0">classify</text>
+<path class="edge" d="M 0.0 583.0 L 0.0 613.0" marker-end="url(#arrow-help)"/><text class="edge-label" x="0.0" y="598.0">settled</text>
+<path class="edge" d="M 112.0 552.0 L 247.0 552.0" marker-end="url(#arrow-help)"/><text class="edge-label" x="179.5" y="552.0">settledScout</text>
+<path class="edge" d="M 287.8 575.0 L 112.0 633.7" marker-end="url(#arrow-help)"/>
+<path class="edge" d="M 112.0 654.3 L 287.8 713.0" marker-end="url(#arrow-help)"/><text class="edge-label" x="199.9" y="683.6">yes</text>
+<path class="edge" d="M 0.0 675.0 L 0.0 705.0" marker-end="url(#arrow-help)"/><text class="edge-label" x="0.0" y="690.0">no</text>
+<path class="edge" d="M 0.0 767.0 L 0.0 805.0" marker-end="url(#arrow-help)"/><text class="edge-label" x="0.0" y="786.0">yes</text>
+<path class="edge" d="M -112.0 736.0 L -247.0 736.0" marker-end="url(#arrow-help)"/><text class="edge-label" x="-179.5" y="736.0">no: root</text>
+<path class="edge" d="M 351.0 759.0 L 351.0 805.0" marker-end="url(#arrow-help)"/>
+<path class="edge" d="M 287.8 851.0 L 63.2 897.0" marker-end="url(#arrow-help)"/>
+<path class="edge" d="M 0.0 851.0 L 0.0 897.0" marker-end="url(#arrow-help)"/>
+<path class="edge" d="M -104.0 920.0 L -195.2 920.0 L -195.2 184.0 L -112.0 184.0" marker-end="url(#arrow-help)"/>
+<path class="edge" d="M -377.0 276.0 L -377.0 322.0" marker-end="url(#arrow-help)"/>
+<path class="edge" d="M -377.0 368.0 L -377.0 414.0" marker-end="url(#arrow-help)"/>
+<path class="edge" d="M -377.0 460.0 L -377.0 506.0" marker-end="url(#arrow-help)"/>
+<path class="edge aside" d="M 104.0 368.0 L 247.0 368.0" marker-end="url(#arrow-help)"/><text class="edge-label" x="175.5" y="368.0">ranks ports</text>
+<path class="edge aside" d="M 63.2 391.0 L 287.8 437.0" marker-end="url(#arrow-help)"/><text class="edge-label" x="175.5" y="414.0">classify</text>
 </g>
 <g class="nodes">
 <g id="help-start" class="node entry"><rect x="-104" y="-23" width="208" height="46" rx="23"/><text x="0.0" y="0.0">run() / simulate()</text></g>
 <g id="help-trans" class="node step has-code" data-fn="run_transitions" tabindex="0" role="button"><rect x="-104" y="69" width="208" height="46" rx="9"/><text x="0.0" y="92.0">run_transitions()</text></g>
 <g id="help-left" class="node decision"><polygon points="0,153 112,184 0,215 -112,184"/><text x="0.0" y="184.0">unsettled left?</text></g>
-<g id="help-settle" class="node step"><rect x="-104" y="253" width="208" height="46" rx="9"/><text x="0.0" y="276.0">settle() highest ID</text></g>
-<g id="help-vacate" class="node decision has-code" data-fn="can_vacate" tabindex="0" role="button"><polygon points="0,337 112,368 0,399 -112,368"/><text x="0.0" y="368.0">can_vacate()</text></g>
-<g id="help-pool" class="node aside"><rect x="221" y="345" width="208" height="46" rx="9"/><text x="325.0" y="368.0">joins scout pool</text></g>
-<g id="help-probe" class="node step has-code" data-fn="parallel_probe" tabindex="0" role="button"><rect x="-104" y="437" width="208" height="46" rx="9"/><text x="0.0" y="460.0">parallel_probe()</text></g>
-<g id="help-rank" class="node decision has-code" data-fn="candidate_rank" tabindex="0" role="button"><polygon points="0,521 112,552 0,583 -112,552"/><text x="0.0" y="552.0">candidate_rank()</text></g>
-<g id="help-fwd" class="node step has-code" data-fn="move_group" tabindex="0" role="button"><rect x="-117" y="621" width="208" height="46" rx="9"/><text x="-13.0" y="644.0">move_group() forward</text></g>
-<g id="help-back" class="node step"><rect x="247" y="621" width="208" height="46" rx="9"/><text x="351.0" y="644.0">move_group() to parent</text></g>
-<g id="help-update" class="node step"><rect x="-104" y="713" width="208" height="46" rx="9"/><text x="0.0" y="736.0">update_node_type()</text></g>
-<g id="help-retrace" class="node step has-code" data-fn="retrace" tabindex="0" role="button"><rect x="-468" y="253" width="208" height="46" rx="9"/><text x="-364.0" y="276.0">retrace()</text></g>
-<g id="help-home" class="node step"><rect x="-468" y="345" width="208" height="46" rx="9"/><text x="-364.0" y="368.0">settle_vacated_at()</text></g>
-<g id="help-final" class="node terminal"><rect x="-468" y="437" width="208" height="46" rx="23"/><text x="-364.0" y="460.0">validate_final()</text></g>
-<g id="help-etype" class="node aside"><rect x="221" y="437" width="208" height="46" rx="9"/><text x="325.0" y="460.0">edge_type()</text></g>
+<g id="help-settler" class="node decision"><polygon points="0,245 112,276 0,307 -112,276"/><text x="0.0" y="268.0">settler at the</text><text x="0.0" y="284.0">head's node?</text></g>
+<g id="help-settle" class="node step has-code" data-fn="settle" tabindex="0" role="button"><rect x="247" y="253" width="208" height="46" rx="9"/><text x="351.0" y="268.0">settle() highest</text><text x="351.0" y="284.0">unsettled ID</text></g>
+<g id="help-probe" class="node step has-code" data-fn="parallel_probe" tabindex="0" role="button"><rect x="-104" y="345" width="208" height="46" rx="9"/><text x="0.0" y="360.0">parallel_probe()</text><text x="0.0" y="376.0">picks the port</text></g>
+<g id="help-rank" class="node aside has-code" data-fn="candidate_rank" tabindex="0" role="button"><rect x="247" y="345" width="208" height="46" rx="9"/><text x="351.0" y="368.0">candidate_rank()</text></g>
+<g id="help-etype" class="node aside has-code" data-fn="edge_type" tabindex="0" role="button"><rect x="247" y="437" width="208" height="46" rx="9"/><text x="351.0" y="460.0">edge_type()</text></g>
+<g id="help-update" class="node step has-code" data-fn="update_node_type" tabindex="0" role="button"><rect x="-104" y="437" width="208" height="46" rx="9"/><text x="0.0" y="460.0">update_node_type()</text></g>
+<g id="help-vacate" class="node decision has-code" data-fn="can_vacate" tabindex="0" role="button"><polygon points="0,521 112,552 0,583 -112,552"/><text x="0.0" y="552.0">can_vacate()</text></g>
+<g id="help-scout" class="node step"><rect x="247" y="529" width="208" height="46" rx="9"/><text x="351.0" y="544.0">owner joins the</text><text x="351.0" y="560.0">group as a scout</text></g>
+<g id="help-port" class="node decision"><polygon points="0,613 112,644 0,675 -112,644"/><text x="0.0" y="644.0">port found?</text></g>
+<g id="help-fwd" class="node step has-code" data-fn="move_group" tabindex="0" role="button"><rect x="247" y="713" width="208" height="46" rx="9"/><text x="351.0" y="728.0">move_group()</text><text x="351.0" y="744.0">forward</text></g>
+<g id="help-adopt" class="node step"><rect x="247" y="805" width="208" height="46" rx="9"/><text x="351.0" y="820.0">adopt the node if</text><text x="351.0" y="836.0">partially visited</text></g>
+<g id="help-parent" class="node decision"><polygon points="0,705 112,736 0,767 -112,736"/><text x="0.0" y="736.0">parent port?</text></g>
+<g id="help-err" class="node terminal"><rect x="-455" y="713" width="208" height="46" rx="23"/><text x="-351.0" y="736.0">MissingParent</text></g>
+<g id="help-back" class="node step"><rect x="-104" y="805" width="208" height="46" rx="9"/><text x="0.0" y="820.0">move_group()</text><text x="0.0" y="836.0">to the parent</text></g>
+<g id="help-next" class="node step"><rect x="-104" y="897" width="208" height="46" rx="9"/><text x="0.0" y="920.0">next round</text></g>
+<g id="help-retrace" class="node step has-code" data-fn="retrace" tabindex="0" role="button"><rect x="-481" y="230" width="208" height="46" rx="9"/><text x="-377.0" y="253.0">retrace()</text></g>
+<g id="help-home" class="node step has-code" data-fn="settle_vacated_at" tabindex="0" role="button"><rect x="-481" y="322" width="208" height="46" rx="9"/><text x="-377.0" y="337.0">settle_vacated_at()</text><text x="-377.0" y="353.0">on first visit</text></g>
+<g id="help-final" class="node step has-code" data-fn="validate_final" tabindex="0" role="button"><rect x="-481" y="414" width="208" height="46" rx="9"/><text x="-377.0" y="437.0">validate_final()</text></g>
+<g id="help-done" class="node terminal"><rect x="-481" y="506" width="208" height="46" rx="23"/><text x="-377.0" y="529.0">Completed</text></g>
 </g>
 </svg>
 </div></div>
 </section>
 <section class="chart-panel hidden" id="panel-p1tree" data-crate="ccm-algorithms">
-<p class="chart-blurb">A DFS that builds a port-one tree: every vertex ends up with an incident tree edge carrying port 1 at one of its ends. Two things carry the O(k) bound — the search stops at the first batch that finds somewhere to go, and the traversal stops at dispersion rather than finishing the tree.</p>
-<div class="chart-frame"><div class="chart-stage"><svg class="chart" viewBox="-663 -63 1287 1138" role="img" aria-label="P1Tree flowchart" xmlns="http://www.w3.org/2000/svg">
+<p class="chart-blurb">A DFS that builds a port-one tree: every vertex ends up with an incident tree edge carrying port 1 at one of its ends. Two things carry the O(k) bound: the search stops at the first batch that finds somewhere to go, and the traversal stops at dispersion rather than finishing the tree. Either way out, dispersion or the root being popped, is followed by retrace, which walks the scouts home. A run that hits the round limit stops without retrace.</p>
+<div class="chart-frame"><div class="chart-stage"><svg class="chart" viewBox="-663 -63 1287 1414" role="img" aria-label="P1Tree flowchart" xmlns="http://www.w3.org/2000/svg">
 <defs><marker id="arrow-p1tree" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z"/></marker></defs>
 <g class="edges">
 <path class="edge" d="M 0.0 23.0 L 0.0 69.0" marker-end="url(#arrow-p1tree)"/>
@@ -120,19 +152,24 @@
 <path class="edge" d="M 0.0 391.0 L 0.0 437.0" marker-end="url(#arrow-p1tree)"/>
 <path class="edge" d="M 0.0 483.0 L 0.0 529.0" marker-end="url(#arrow-p1tree)"/>
 <path class="edge" d="M 0.0 575.0 L 0.0 613.0" marker-end="url(#arrow-p1tree)"/>
-<path class="edge" d="M 112.0 644.0 L 153.6 644.0 L 153.6 460.0 L 104.0 460.0" marker-end="url(#arrow-p1tree)"/><text class="edge-label" x="153.6" y="552.0">no, ports left</text>
-<path class="edge" d="M 112.0 654.3 L 239.0 725.7" marker-end="url(#arrow-p1tree)"/><text class="edge-label" x="175.5" y="690.0">found</text>
-<path class="edge" d="M -112.0 653.2 L -278.0 726.8" marker-end="url(#arrow-p1tree)"/><text class="edge-label" x="-195.0" y="690.0">exhausted</text>
-<path class="edge" d="M 239.0 745.2 L 31.2 805.0" marker-end="url(#arrow-p1tree)"/><text class="edge-label" x="135.1" y="775.1">yes</text>
-<path class="edge" d="M 351.0 767.0 L 351.0 805.0" marker-end="url(#arrow-p1tree)"/><text class="edge-label" x="351.0" y="786.0">no</text>
-<path class="edge" d="M -278.0 746.3 L -102.2 805.0" marker-end="url(#arrow-p1tree)"/><text class="edge-label" x="-190.1" y="775.6">yes</text>
-<path class="edge" d="M -390.0 767.0 L -390.0 805.0" marker-end="url(#arrow-p1tree)"/><text class="edge-label" x="-390.0" y="786.0">no</text>
-<path class="edge" d="M 351.0 851.0 L 351.0 897.0" marker-end="url(#arrow-p1tree)"/>
+<path class="edge" d="M 112.0 644.0 L 153.6 644.0 L 153.6 552.0 L 104.0 552.0" marker-end="url(#arrow-p1tree)"/><text class="edge-label" x="153.6" y="598.0">no</text>
+<path class="edge" d="M 0.0 675.0 L 0.0 705.0" marker-end="url(#arrow-p1tree)"/><text class="edge-label" x="0.0" y="690.0">yes</text>
+<path class="edge" d="M 112.0 746.3 L 239.0 817.7" marker-end="url(#arrow-p1tree)"/><text class="edge-label" x="175.5" y="782.0">found</text>
+<path class="edge" d="M -112.0 745.2 L -278.0 818.8" marker-end="url(#arrow-p1tree)"/><text class="edge-label" x="-195.0" y="782.0">exhausted</text>
+<path class="edge" d="M 239.0 837.2 L 31.2 897.0" marker-end="url(#arrow-p1tree)"/><text class="edge-label" x="135.1" y="867.1">yes</text>
+<path class="edge" d="M 351.0 859.0 L 351.0 897.0" marker-end="url(#arrow-p1tree)"/><text class="edge-label" x="351.0" y="878.0">no</text>
+<path class="edge" d="M -278.0 838.3 L -102.2 897.0" marker-end="url(#arrow-p1tree)"/><text class="edge-label" x="-190.1" y="867.6">yes</text>
+<path class="edge" d="M -390.0 859.0 L -390.0 897.0" marker-end="url(#arrow-p1tree)"/><text class="edge-label" x="-390.0" y="878.0">no</text>
 <path class="edge" d="M 351.0 943.0 L 351.0 989.0" marker-end="url(#arrow-p1tree)"/>
-<path class="edge" d="M 455.0 1012.0 L 587.8 1012.0 L 587.8 276.0 L 112.0 276.0" marker-end="url(#arrow-p1tree)"/><text class="edge-label" x="587.8" y="644.0">next</text>
-<path class="edge" d="M -69.4 851.0 L -177.6 943.0" marker-end="url(#arrow-p1tree)"/>
-<path class="edge" d="M -357.2 851.0 L -240.8 943.0" marker-end="url(#arrow-p1tree)"/>
-<path class="edge" d="M -312.0 966.0 L -403.2 966.0 L -403.2 276.0 L -112.0 276.0" marker-end="url(#arrow-p1tree)"/><text class="edge-label" x="-403.2" y="621.0">popped</text>
+<path class="edge" d="M 351.0 1035.0 L 351.0 1081.0" marker-end="url(#arrow-p1tree)"/>
+<path class="edge" d="M 301.9 1127.0 L 127.1 1265.0" marker-end="url(#arrow-p1tree)"/>
+<path class="edge" d="M -69.4 943.0 L -177.6 989.0" marker-end="url(#arrow-p1tree)"/>
+<path class="edge" d="M -357.2 943.0 L -240.8 989.0" marker-end="url(#arrow-p1tree)"/>
+<path class="edge" d="M -208.0 1035.0 L -208.0 1081.0" marker-end="url(#arrow-p1tree)"/>
+<path class="edge" d="M -208.0 1127.0 L -208.0 1165.0" marker-end="url(#arrow-p1tree)"/>
+<path class="edge" d="M -156.5 1227.0 L 26.5 1265.0" marker-end="url(#arrow-p1tree)"/><text class="edge-label" x="-65.0" y="1246.0">no</text>
+<path class="edge" d="M -320.0 1196.0 L -585.2 1196.0 L -585.2 276.0 L -494.0 276.0" marker-end="url(#arrow-p1tree)"/><text class="edge-label" x="-585.2" y="736.0">yes</text>
+<path class="edge" d="M 182.0 1288.0 L 481.2 1288.0 L 481.2 276.0 L 112.0 276.0" marker-end="url(#arrow-p1tree)"/>
 </g>
 <g class="nodes">
 <g id="p1tree-start" class="node entry"><rect x="-104" y="-23" width="208" height="46" rx="23"/><text x="0.0" y="0.0">run() / simulate()</text></g>
@@ -140,20 +177,24 @@
 <g id="p1tree-trav" class="node step has-code" data-fn="traverse" tabindex="0" role="button"><rect x="-104" y="161" width="208" height="46" rx="9"/><text x="0.0" y="184.0">traverse()</text></g>
 <g id="p1tree-disp" class="node decision has-code" data-fn="note_dispersion" tabindex="0" role="button"><polygon points="0,245 112,276 0,307 -112,276"/><text x="0.0" y="276.0">dispersed?</text></g>
 <g id="p1tree-retrace" class="node step has-code" data-fn="retrace" tabindex="0" role="button"><rect x="-494" y="253" width="208" height="46" rx="9"/><text x="-390.0" y="276.0">retrace()</text></g>
-<g id="p1tree-post" class="node step"><rect x="-494" y="345" width="208" height="46" rx="9"/><text x="-390.0" y="368.0">post_order() walk</text></g>
+<g id="p1tree-post" class="node step has-code" data-fn="post_order" tabindex="0" role="button"><rect x="-494" y="345" width="208" height="46" rx="9"/><text x="-390.0" y="360.0">post_order() walk,</text><text x="-390.0" y="376.0">drop scouts at home</text></g>
 <g id="p1tree-done" class="node terminal"><rect x="-494" y="437" width="208" height="46" rx="23"/><text x="-390.0" y="460.0">Completed</text></g>
 <g id="p1tree-search" class="node step has-code" data-fn="neighbourhood_search" tabindex="0" role="button"><rect x="-104" y="345" width="208" height="46" rx="9"/><text x="0.0" y="368.0">neighbourhood_search()</text></g>
-<g id="p1tree-party" class="node step has-code" data-fn="probe_party" tabindex="0" role="button"><rect x="-104" y="437" width="208" height="46" rx="9"/><text x="0.0" y="460.0">probe_party()</text></g>
-<g id="p1tree-state" class="node step has-code" data-fn="probe_detour" tabindex="0" role="button"><rect x="-104" y="529" width="208" height="46" rx="9"/><text x="0.0" y="552.0">state_of() / probe_detour()</text></g>
-<g id="p1tree-choose" class="node decision has-code" data-fn="choose_next_edge" tabindex="0" role="button"><polygon points="0,613 112,644 0,675 -112,644"/><text x="0.0" y="644.0">choose_next_edge()?</text></g>
-<g id="p1tree-defer" class="node decision has-code" data-fn="must_defer" tabindex="0" role="button"><polygon points="351,705 463,736 351,767 239,736"/><text x="351.0" y="736.0">must_defer()?</text></g>
-<g id="p1tree-await" class="node decision has-code" data-fn="awaits_port_one" tabindex="0" role="button"><polygon points="-390,705 -278,736 -390,767 -502,736"/><text x="-390.0" y="736.0">awaits_port_one()?</text></g>
-<g id="p1tree-partial" class="node step"><rect x="-143" y="805" width="208" height="46" rx="9"/><text x="-39.0" y="828.0">mark partiallyVisited</text></g>
-<g id="p1tree-full" class="node step"><rect x="-494" y="805" width="208" height="46" rx="9"/><text x="-390.0" y="828.0">mark fullyVisited</text></g>
-<g id="p1tree-advance" class="node step has-code" data-fn="advance" tabindex="0" role="button"><rect x="247" y="805" width="208" height="46" rx="9"/><text x="351.0" y="828.0">advance()</text></g>
-<g id="p1tree-canvac" class="node step has-code" data-fn="apply_can_vacate" tabindex="0" role="button"><rect x="247" y="897" width="208" height="46" rx="9"/><text x="351.0" y="920.0">apply_can_vacate()</text></g>
-<g id="p1tree-parvac" class="node step has-code" data-fn="apply_parent_vacate" tabindex="0" role="button"><rect x="247" y="989" width="208" height="46" rx="9"/><text x="351.0" y="1012.0">apply_parent_vacate()</text></g>
-<g id="p1tree-backtrack" class="node step has-code" data-fn="backtrack" tabindex="0" role="button"><rect x="-312" y="943" width="208" height="46" rx="9"/><text x="-208.0" y="966.0">backtrack()</text></g>
+<g id="p1tree-party" class="node step has-code" data-fn="probe_party" tabindex="0" role="button"><rect x="-104" y="437" width="208" height="46" rx="9"/><text x="0.0" y="452.0">probe_party()</text><text x="0.0" y="468.0">picks the scouts</text></g>
+<g id="p1tree-batch" class="node step has-code" data-fn="probe_detour" tabindex="0" role="button"><rect x="-104" y="529" width="208" height="46" rx="9"/><text x="0.0" y="544.0">next batch: scouts</text><text x="0.0" y="560.0">go out and back</text></g>
+<g id="p1tree-found" class="node decision"><polygon points="0,613 112,644 0,675 -112,644"/><text x="0.0" y="636.0">somewhere to go,</text><text x="0.0" y="652.0">or no ports left?</text></g>
+<g id="p1tree-choose" class="node decision has-code" data-fn="choose_next_edge" tabindex="0" role="button"><polygon points="0,705 112,736 0,767 -112,736"/><text x="0.0" y="736.0">choose_next_edge()?</text></g>
+<g id="p1tree-defer" class="node decision has-code" data-fn="must_defer" tabindex="0" role="button"><polygon points="351,797 463,828 351,859 239,828"/><text x="351.0" y="828.0">must_defer()?</text></g>
+<g id="p1tree-await" class="node decision has-code" data-fn="awaits_port_one" tabindex="0" role="button"><polygon points="-390,797 -278,828 -390,859 -502,828"/><text x="-390.0" y="828.0">awaits_port_one()?</text></g>
+<g id="p1tree-partial" class="node step"><rect x="-143" y="897" width="208" height="46" rx="9"/><text x="-39.0" y="912.0">mark</text><text x="-39.0" y="928.0">partiallyVisited</text></g>
+<g id="p1tree-full" class="node step"><rect x="-494" y="897" width="208" height="46" rx="9"/><text x="-390.0" y="920.0">mark fullyVisited</text></g>
+<g id="p1tree-advance" class="node step has-code" data-fn="advance" tabindex="0" role="button"><rect x="247" y="897" width="208" height="46" rx="9"/><text x="351.0" y="920.0">advance()</text></g>
+<g id="p1tree-canvac" class="node step has-code" data-fn="apply_can_vacate" tabindex="0" role="button"><rect x="247" y="989" width="208" height="46" rx="9"/><text x="351.0" y="1012.0">apply_can_vacate()</text></g>
+<g id="p1tree-parvac" class="node step has-code" data-fn="apply_parent_vacate" tabindex="0" role="button"><rect x="247" y="1081" width="208" height="46" rx="9"/><text x="351.0" y="1104.0">apply_parent_vacate()</text></g>
+<g id="p1tree-vacate" class="node step"><rect x="-312" y="989" width="208" height="46" rx="9"/><text x="-208.0" y="1012.0">apply_can_vacate()</text></g>
+<g id="p1tree-backtrack" class="node step has-code" data-fn="backtrack" tabindex="0" role="button"><rect x="-312" y="1081" width="208" height="46" rx="9"/><text x="-208.0" y="1104.0">backtrack()</text></g>
+<g id="p1tree-popped" class="node decision"><polygon points="-208,1165 -96,1196 -208,1227 -320,1196"/><text x="-208.0" y="1196.0">root popped?</text></g>
+<g id="p1tree-next" class="node step"><rect x="-26" y="1265" width="208" height="46" rx="9"/><text x="78.0" y="1288.0">next step</text></g>
 </g>
 </svg>
 </div></div>
@@ -316,6 +357,10 @@ pub fn simulate_with&lt;M: Metrics, R: Recorder&gt;(
     for movement in moves {
         state.agents[movement.agent.index()].node = movement.destination;
     }
+}</template><template data-code="ordered_ports" data-source="crates/ccm-algorithms/src/drop_and_freeze.rs">fn ordered_ports(graph: &amp;PortGraph, node: NodeId) -&gt; Vec&lt;PortId&gt; {
+    let mut ports: Vec&lt;(PortId, PortEdge)&gt; = graph.ports(node).collect();
+    ports.sort_by_key(|(port, edge)| (EdgeType::of(*port, edge.remote_port).priority(), port.0));
+    ports.into_iter().map(|(port, _)| port).collect()
 }</template><template data-code="probe_back" data-source="crates/ccm-algorithms/src/drop_and_freeze.rs">fn probe_back&lt;M: Metrics&gt;(
     graph: &amp;PortGraph,
     state: &amp;mut SimulationState,
@@ -499,10 +544,6 @@ fn move_out&lt;M: Metrics&gt;(
         }
     }
     Ok(())
-}</template><template data-code="ordered_ports" data-source="crates/ccm-algorithms/src/drop_and_freeze.rs">fn ordered_ports(graph: &amp;PortGraph, node: NodeId) -&gt; Vec&lt;PortId&gt; {
-    let mut ports: Vec&lt;(PortId, PortEdge)&gt; = graph.ports(node).collect();
-    ports.sort_by_key(|(port, edge)| (EdgeType::of(*port, edge.remote_port).priority(), port.0));
-    ports.into_iter().map(|(port, _)| port).collect()
 }</template><template data-code="scouts_for_count" data-source="crates/ccm-algorithms/src/drop_and_freeze.rs">fn scouts_for_count(
     state: &amp;SimulationState,
     node: NodeId,
@@ -532,6 +573,71 @@ fn move_out&lt;M: Metrics&gt;(
         }
     }
     ports.len()
+}</template><template data-code="validate_state" data-source="crates/ccm-algorithms/src/drop_and_freeze.rs">fn validate_state(graph: &amp;PortGraph, state: &amp;SimulationState) -&gt; Result&lt;(), DropAndFreezeError&gt; {
+    if state.settled_agent_at.len() != graph.node_count()
+        || state.node_status.len() != graph.node_count()
+    {
+        return Err(DropAndFreezeError::Invariant(
+            InvariantViolation::OwnershipIndexMismatch,
+        ));
+    }
+    for (index, agent) in state.agents.iter().enumerate() {
+        if agent.node.index() &gt;= graph.node_count() {
+            return Err(DropAndFreezeError::Invariant(
+                InvariantViolation::InvalidAgentNode,
+            ));
+        }
+        if let Some(home) = agent.probe_home {
+            if home.index() &gt;= graph.node_count() {
+                return Err(DropAndFreezeError::Invariant(
+                    InvariantViolation::InvalidTraversal,
+                ));
+            }
+        }
+        if let Some(port) = agent.parent_port {
+            if graph.traverse(agent.node, port).is_none() {
+                return Err(DropAndFreezeError::Invariant(
+                    InvariantViolation::InvalidParent,
+                ));
+            }
+        }
+        if let Some(owner) = state.settled_agent_at[agent.node.index()] {
+            if owner
+                == ccm_core::AgentId(
+                    u32::try_from(index).expect(&quot;agent IDs fit in the dense u32 domain&quot;),
+                )
+                &amp;&amp; agent.status != DropStatus::Settled
+            {
+                return Err(DropAndFreezeError::Invariant(
+                    InvariantViolation::OwnershipIndexMismatch,
+                ));
+            }
+        }
+    }
+    for (node, owner) in state.settled_agent_at.iter().enumerate() {
+        if let Some(agent) = owner {
+            let Some(value) = state.agents.get(agent.index()) else {
+                return Err(DropAndFreezeError::Invariant(
+                    InvariantViolation::OwnershipIndexMismatch,
+                ));
+            };
+            if value.node.index() != node || value.status != DropStatus::Settled {
+                return Err(DropAndFreezeError::Invariant(
+                    InvariantViolation::OwnershipIndexMismatch,
+                ));
+            }
+            if state.node_status[node] != DropNodeStatus::Occupied {
+                return Err(DropAndFreezeError::Invariant(
+                    InvariantViolation::OwnershipIndexMismatch,
+                ));
+            }
+        } else if state.node_status[node] != DropNodeStatus::Empty {
+            return Err(DropAndFreezeError::Invariant(
+                InvariantViolation::OwnershipIndexMismatch,
+            ));
+        }
+    }
+    Ok(())
 }</template><template data-code="run_transitions" data-source="crates/ccm-algorithms/src/help_by_scouts.rs">    fn run_transitions(&amp;mut self) -&gt; Result&lt;(), HelpError&gt; {
         self.observe();
         while self.unsettled.iter().any(|&amp;value| value) {
@@ -604,62 +710,39 @@ fn move_out&lt;M: Metrics&gt;(
         }
         self.retrace()?;
         Ok(())
-    }</template><template data-code="can_vacate" data-source="crates/ccm-algorithms/src/help_by_scouts.rs">    fn can_vacate(&amp;mut self, node: NodeId, owner: AgentId) -&gt; Result&lt;HelpStatus, HelpError&gt; {
-        self.metrics.vacate();
-        self.metrics.logical_rounds(RoundKind::Vacate, 2);
-        self.tick(2)?;
-        let state = self.agents[owner.index()].clone();
-        if state.parent_port.is_none() {
-            return Ok(HelpStatus::Settled);
+    }</template><template data-code="settle" data-source="crates/ccm-algorithms/src/help_by_scouts.rs">    fn settle(&amp;mut self, agent: AgentId, node: NodeId, head: AgentId) -&gt; Result&lt;(), HelpError&gt; {
+        if self.home_owner[node.index()].is_some() {
+            return Err(HelpError::DuplicateHome(node));
         }
-        if state.node_type == NodeType::Visited
-            || (state.node_type == NodeType::FullyVisited &amp;&amp; !state.vacated_neighbor)
-        {
-            let destination = self.move_agent(owner, node, PortId(0))?;
-            let other = self.physical_settler(destination, Some(owner));
-            if let Some(other) = other {
-                self.agents[other.index()].vacated_neighbor = true;
-            }
-            let return_port =
-                self.agents[owner.index()]
-                    .arrival_port
-                    .ok_or(HelpError::InvalidPort {
-                        node: destination,
-                        port: PortId(0),
-                    })?;
-            self.move_agent(owner, destination, return_port)?;
-            self.metrics.logical_rounds(RoundKind::Vacate, 2);
-            self.tick(2)?;
-            return Ok(if other.is_some() {
-                HelpStatus::SettledScout
-            } else {
-                HelpStatus::Settled
-            });
-        }
-        if state.node_type == NodeType::PartiallyVisited {
-            return Ok(HelpStatus::SettledScout);
-        }
-        if state.port_at_parent == Some(PortId(0)) {
-            let parent_port = state.parent_port.ok_or(HelpError::MissingParent(node))?;
-            let parent_node = self.move_agent(owner, node, parent_port)?;
-            let parent_owner = self.physical_settler(parent_node, Some(owner));
-            if let Some(parent_owner) = parent_owner {
-                if self.agents[parent_owner.index()].vacated_neighbor {
-                    self.move_agent(owner, parent_node, PortId(0))?;
-                } else {
-                    self.agents[parent_owner.index()].status = HelpStatus::SettledScout;
-                    self.vacated[parent_owner.index()] = true;
-                    let ids = [owner, parent_owner];
-                    self.move_group(&amp;ids, parent_node, PortId(0))?;
-                    self.agents[owner.index()].vacated_neighbor = true;
-                }
-            } else {
-                self.move_agent(owner, parent_node, PortId(0))?;
-            }
-            self.metrics.logical_rounds(RoundKind::Vacate, 2);
-            self.tick(2)?;
-        }
-        Ok(HelpStatus::Settled)
+        let previous = self.agents[head.index()].previous;
+        let (parent, parent_port, port_at_parent) = if let Some(parent) = previous {
+            let parent_port = self.agents[head.index()]
+                .arrival_port
+                .ok_or(HelpError::MissingParent(node))?;
+            let port_at_parent = self.agents[head.index()]
+                .child_port
+                .or(self.agents[parent.index()].recent_port)
+                .ok_or(HelpError::MissingParent(node))?;
+            (Some(parent), Some(parent_port), Some(port_at_parent))
+        } else {
+            (None, None, None)
+        };
+        let depth = parent.map_or(0, |id| self.agents[id.index()].depth.saturating_add(1));
+        let state = &amp;mut self.agents[agent.index()];
+        state.status = HelpStatus::Settled;
+        state.home = Some(node);
+        state.parent = parent;
+        state.parent_port = parent_port;
+        state.port_at_parent = port_at_parent;
+        state.depth = depth;
+        self.home_owner[node.index()] = Some(agent);
+        self.unsettled[agent.index()] = false;
+        self.agents[head.index()].child_port = None;
+        self.metrics.settlement();
+        self.recorder
+            .record_event(self.steps, SimulationEvent::AgentSettled { agent, node });
+        self.observe();
+        Ok(())
     }</template><template data-code="parallel_probe" data-source="crates/ccm-algorithms/src/help_by_scouts.rs">    fn parallel_probe(
         &amp;mut self,
         node: NodeId,
@@ -734,6 +817,88 @@ fn move_out&lt;M: Metrics&gt;(
             _ =&gt; 99,
         };
         (node_rank, result.edge_type.priority(), result.port.0)
+    }</template><template data-code="edge_type" data-source="crates/ccm-algorithms/src/help_by_scouts.rs">    fn edge_type(&amp;self, node: NodeId, port: PortId) -&gt; Result&lt;EdgeType, HelpError&gt; {
+        crate::common::edge_type_at(self.graph, node, port)
+            .ok_or(HelpError::InvalidPort { node, port })
+    }</template><template data-code="update_node_type" data-source="crates/ccm-algorithms/src/help_by_scouts.rs">    fn update_node_type(&amp;mut self, node: NodeId, owner: AgentId) -&gt; Result&lt;(), HelpError&gt; {
+        let empty: Vec&lt;ProbeResult&gt; = self.agents[owner.index()]
+            .probe_results
+            .iter()
+            .copied()
+            .filter(|result| result.node_type == NodeType::Unvisited)
+            .collect();
+        if empty.is_empty() {
+            self.agents[owner.index()].node_type = NodeType::FullyVisited;
+        } else if let Some(parent_port) = self.agents[owner.index()].parent_port {
+            if self.edge_type(node, parent_port)? == EdgeType::OtherOther
+                &amp;&amp; empty
+                    .iter()
+                    .all(|result| result.edge_type == EdgeType::OtherOther)
+            {
+                self.agents[owner.index()].node_type = NodeType::PartiallyVisited;
+            } else {
+                self.agents[owner.index()].node_type = NodeType::Visited;
+            }
+        } else {
+            self.agents[owner.index()].node_type = NodeType::Visited;
+        }
+        Ok(())
+    }</template><template data-code="can_vacate" data-source="crates/ccm-algorithms/src/help_by_scouts.rs">    fn can_vacate(&amp;mut self, node: NodeId, owner: AgentId) -&gt; Result&lt;HelpStatus, HelpError&gt; {
+        self.metrics.vacate();
+        self.metrics.logical_rounds(RoundKind::Vacate, 2);
+        self.tick(2)?;
+        let state = self.agents[owner.index()].clone();
+        if state.parent_port.is_none() {
+            return Ok(HelpStatus::Settled);
+        }
+        if state.node_type == NodeType::Visited
+            || (state.node_type == NodeType::FullyVisited &amp;&amp; !state.vacated_neighbor)
+        {
+            let destination = self.move_agent(owner, node, PortId(0))?;
+            let other = self.physical_settler(destination, Some(owner));
+            if let Some(other) = other {
+                self.agents[other.index()].vacated_neighbor = true;
+            }
+            let return_port =
+                self.agents[owner.index()]
+                    .arrival_port
+                    .ok_or(HelpError::InvalidPort {
+                        node: destination,
+                        port: PortId(0),
+                    })?;
+            self.move_agent(owner, destination, return_port)?;
+            self.metrics.logical_rounds(RoundKind::Vacate, 2);
+            self.tick(2)?;
+            return Ok(if other.is_some() {
+                HelpStatus::SettledScout
+            } else {
+                HelpStatus::Settled
+            });
+        }
+        if state.node_type == NodeType::PartiallyVisited {
+            return Ok(HelpStatus::SettledScout);
+        }
+        if state.port_at_parent == Some(PortId(0)) {
+            let parent_port = state.parent_port.ok_or(HelpError::MissingParent(node))?;
+            let parent_node = self.move_agent(owner, node, parent_port)?;
+            let parent_owner = self.physical_settler(parent_node, Some(owner));
+            if let Some(parent_owner) = parent_owner {
+                if self.agents[parent_owner.index()].vacated_neighbor {
+                    self.move_agent(owner, parent_node, PortId(0))?;
+                } else {
+                    self.agents[parent_owner.index()].status = HelpStatus::SettledScout;
+                    self.vacated[parent_owner.index()] = true;
+                    let ids = [owner, parent_owner];
+                    self.move_group(&amp;ids, parent_node, PortId(0))?;
+                    self.agents[owner.index()].vacated_neighbor = true;
+                }
+            } else {
+                self.move_agent(owner, parent_node, PortId(0))?;
+            }
+            self.metrics.logical_rounds(RoundKind::Vacate, 2);
+            self.tick(2)?;
+        }
+        Ok(HelpStatus::Settled)
     }</template><template data-code="move_group" data-source="crates/ccm-algorithms/src/help_by_scouts.rs">    fn move_group(
         &amp;mut self,
         ids: &amp;[AgentId],
@@ -822,6 +987,33 @@ fn move_out&lt;M: Metrics&gt;(
             return Err(HelpError::Invariant(&quot;retrace left vacated settlers&quot;));
         }
         Ok(())
+    }</template><template data-code="settle_vacated_at" data-source="crates/ccm-algorithms/src/help_by_scouts.rs">    fn settle_vacated_at(&amp;mut self, node: NodeId) {
+        if let Some(owner) = self.home_owner[node.index()] {
+            if self.vacated[owner.index()] {
+                self.vacated[owner.index()] = false;
+                self.agents[owner.index()].status = HelpStatus::Settled;
+                self.recorder.record_event(
+                    self.steps,
+                    SimulationEvent::AgentStateChanged {
+                        agent: owner,
+                        from: AgentStatus::SettledScout,
+                        to: AgentStatus::Settled,
+                    },
+                );
+            }
+        }
+    }</template><template data-code="validate_final" data-source="crates/ccm-algorithms/src/help_by_scouts.rs">    fn validate_final(&amp;self) -&gt; Result&lt;(), HelpError&gt; {
+        let mut occupied = vec![false; self.graph.node_count()];
+        for agent in &amp;self.agents {
+            if agent.status != HelpStatus::Settled || agent.home != Some(agent.node) {
+                return Err(HelpError::Invariant(&quot;agent not settled at home&quot;));
+            }
+            if occupied[agent.node.index()] {
+                return Err(HelpError::DuplicateHome(agent.node));
+            }
+            occupied[agent.node.index()] = true;
+        }
+        Ok(())
     }</template><template data-code="settle_highest_at" data-source="crates/ccm-algorithms/src/p1tree.rs">    /// Section 4: &quot;the agent with the highest ID among the unsettled agents at
     /// v settles&quot;.
     fn settle_highest_at(&amp;mut self, node: NodeId) {
@@ -847,11 +1039,12 @@ fn move_out&lt;M: Metrics&gt;(
     }</template><template data-code="traverse" data-source="crates/ccm-algorithms/src/p1tree.rs">    /// The `while S != {}` loop of Algorithm 2, with the stack realised by the
     /// parent pointers the settled agents hold.
     ///
-    /// The loop runs until the root is popped, which is Algorithm 2's own
-    /// termination. Stopping earlier, as soon as every agent had settled, left
-    /// nodes `partiallyVisited` with a `tpq` parent edge and so broke
-    /// Definition 1: it is exactly the walk back to the root that reconfigures
-    /// them.
+    /// Under [`Stop::AtDispersion`], the default, the loop ends as soon as every
+    /// agent has settled (Section 5). Under [`Stop::AtFullTree`] it runs until
+    /// the root is popped, Algorithm 2's own termination, which is the walk
+    /// that reconfigures any node still `partiallyVisited` and so makes the
+    /// tree satisfy Definition 1. Popping the root also ends the default run
+    /// if it comes first. Either way the caller runs Retrace afterwards.
     fn traverse(&amp;mut self) -&gt; Result&lt;Termination, P1Error&gt; {
         let mut rounds = 0_u64;
         loop {
@@ -973,6 +1166,11 @@ fn move_out&lt;M: Metrics&gt;(
                 break;
             }
         }
+    }</template><template data-code="post_order" data-source="crates/ccm-algorithms/src/p1tree.rs">    fn post_order(node: NodeId, children: &amp;[Vec&lt;NodeId&gt;], out: &amp;mut Vec&lt;NodeId&gt;) {
+        for &amp;child in &amp;children[node.index()] {
+            Self::post_order(child, children, out);
+        }
+        out.push(node);
     }</template><template data-code="neighbourhood_search" data-source="crates/ccm-algorithms/src/p1tree.rs">    /// Section 4.2's parallel probe: the scouts fan out over the head's ports
     /// together and come back reporting what they saw.
     ///
@@ -1195,8 +1393,8 @@ fn move_out&lt;M: Metrics&gt;(
             }
             NodeType::PartiallyVisited =&gt; {
                 // Reconfiguration (rule (D4)): the old tpq parent edge is
-                // dropped in set_parent above and this port-1 edge takes its
-                // place, which makes the node visited.
+                // replaced by this port-1 edge in set_parent below, which
+                // makes the node visited.
                 self.node_type[target.index()] = NodeType::Visited;
             }
             NodeType::Visited | NodeType::FullyVisited =&gt; {}

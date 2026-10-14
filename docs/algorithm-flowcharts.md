@@ -23,27 +23,45 @@ before drawing conclusions from any of them.
 ## Drop and Freeze
 
 Three phases per round, over the agents standing on each node. Unsettled agents
-fan out one per port to look at a neighbour, come back carrying one bit — was it
-occupied — and then one of them settles while the rest move on together through
-a port a probe reported empty. When no empty port is left the group backtracks
-along the port it first arrived by, so the walk is a DFS whose tree is held by
-the settled agents.
+step out one per remaining port and come back with one bit: is a *settled*
+agent there? A node holding only unsettled agents reads as empty. On a node
+with no settler yet, the lowest-ID agent settles. The rest move through the
+first empty port at or after the settler's cursor. If there is none the cursor
+moves on by the number of ports just probed, and the group stays to probe the
+next ports; only once every port has been tried does it backtrack along the
+settler's parent port. A start node has no parent port, so a group stuck there
+stays until the round limit.
+
+Several start nodes are allowed, and groups that meet merge, so this is the one
+algorithm here that runs from the simulator's *Seeded groups* placement. The
+state is validated after every phase; a failed check, or a start outside the
+graph, ends the run with an error rather than a termination.
 
 ```mermaid
 flowchart TD
     A["simulate_with()"] --> B["canonicalize_ports()"]
-    B --> C{"all_settled()?"}
+    B --> C{"all settled?"}
     C -- yes --> Z["Termination::Completed"]
-    C -- no --> D{"round &lt; round_limit?"}
+    C -- no --> D{"rounds left?"}
     D -- no --> Y["Termination::RoundLimitReached"]
     D -- yes --> E["probe_out()"]
-    E --> F["probe_back()"]
-    F --> G["move_out()"]
-    G --> H["validate_state()"]
-    H --> C
+    E --> F["probe_back(): one bit, settler there?"]
+    F --> G["move_out(): lowest ID settles if the node has no settler"]
+    G --> H{"empty port at or after the cursor?"}
+    H -- yes --> I["move the group through it"]
+    H -- no --> J["cursor += ports probed"]
+    J --> K{"every port tried?"}
+    K -- no --> L["stay; probe the next ports"]
+    K -- yes --> M{"parent port?"}
+    M -- yes --> N["backtrack along the parent port"]
+    M -- "no: start node" --> L
+    I --> V["validate_state()"]
+    L --> V
+    N --> V
+    V -- next round --> C
 
-    E -. "ports in DFS-cursor order" .-> E1["ordered_ports()"]
-    G -. "one settles, rest move as a group" .-> G1["scouts_for_count()"]
+    E -. "port order" .-> E1["ordered_ports()"]
+    J -. "how many" .-> J1["scouts_for_count()"]
 ```
 
 `canonicalize_ports` is a compatibility decision rather than an algorithmic one:
@@ -405,36 +423,83 @@ fn move_out<M: Metrics>(
 }
 ```
 
+```rust
+fn scouts_for_count(
+    state: &SimulationState,
+    node: NodeId,
+    movers: &[ccm_core::AgentId],
+    include_settled: bool,
+    settled: ccm_core::AgentId,
+) -> usize {
+    let mut ports = Vec::<PortId>::new();
+    for &agent in movers {
+        let value = state.agents[agent.index()];
+        if value.probe_home == Some(node) {
+            if let Some(port) = value.probe_port {
+                if !ports.contains(&port) {
+                    ports.push(port);
+                }
+            }
+        }
+    }
+    if include_settled {
+        let value = state.agents[settled.index()];
+        if value.probe_home == Some(node) {
+            if let Some(port) = value.probe_port {
+                if !ports.contains(&port) {
+                    ports.push(port);
+                }
+            }
+        }
+    }
+    ports.len()
+}
+```
+
 ---
 
 ## Help by Scouts
 
-Also a DFS, but settled agents help. A settled agent whose node can spare it
-vacates and travels with the unsettled group as a scout, so several ports can be
-probed in the same round instead of one at a time. Scouts later retrace the tree
-in post-order and drop back onto the nodes they own, so the run still ends one
-agent per node.
+Also a DFS, but settled agents help. Each round the group probes the head's
+ports in parallel, and `parallel_probe` returns the port to take, ranked by
+`candidate_rank`. Only after the probe does the node's owner decide, in
+`can_vacate`, whether it can leave; if it can, it travels on with the group as a
+scout and helps with the *next* probe. When nobody is left unsettled, `retrace`
+walks the tree from where the group stands and drops each scout at its home the
+first time it reaches it.
+
+Help-by-Scouts is rooted-only. The code does not reject a scattered start; it
+fails partway through, which is why the simulator locks its placement to node
+0. Any step can hit the round limit, which ends the run as `RoundLimitReached`,
+and running out of ports at the root ends it with a `MissingParent` error.
 
 ```mermaid
 flowchart TD
     A["run() / simulate()"] --> B["run_transitions()"]
     B --> C{"unsettled agents left?"}
     C -- no --> R["retrace()"]
-    C -- yes --> D["settle() highest ID at head"]
-    D --> E["can_vacate()"]
-    E -- "settledScout" --> F["joins the scout pool"]
-    E -- "settled" --> G
-    F --> G["parallel_probe()"]
-    G --> H["candidate_rank() picks the next port"]
-    H -- "port found" --> I["move_group() forward"]
-    H -- "none" --> J["move_group() to parentPort"]
-    I --> K["update_node_type()"]
-    J --> K
-    K --> C
-    R --> S["settle_vacated_at() each home"]
+    C -- yes --> D{"settler at the head's node?"}
+    D -- no --> D1["settle() highest unsettled ID"]
+    D1 -- check again --> C
+    D -- yes --> G["parallel_probe() picks the port"]
+    G --> U["update_node_type()"]
+    U --> E{"can_vacate()"}
+    E -- settledScout --> F["owner joins the group as a scout"]
+    E -- settled --> H{"port found?"}
+    F --> H
+    H -- yes --> I["move_group() forward"]
+    I --> I1["adopt the node if partially visited"]
+    H -- no --> P{"parent port?"}
+    P -- yes --> J["move_group() to the parent"]
+    P -- "no: root" --> X["Err(MissingParent)"]
+    I1 --> C
+    J --> C
+    R --> S["settle_vacated_at() on first visit"]
     S --> T["validate_final()"]
+    T --> Z["Termination::Completed"]
 
-    G -. "edge classification" .-> G1["edge_type()"]
+    G -. "ranks ports" .-> G1["candidate_rank()"]
+    G -. "classify" .-> G2["edge_type()"]
 ```
 
 ```rust
@@ -592,6 +657,33 @@ flowchart TD
             _ => 99,
         };
         (node_rank, result.edge_type.priority(), result.port.0)
+    }
+```
+
+```rust
+    fn update_node_type(&mut self, node: NodeId, owner: AgentId) -> Result<(), HelpError> {
+        let empty: Vec<ProbeResult> = self.agents[owner.index()]
+            .probe_results
+            .iter()
+            .copied()
+            .filter(|result| result.node_type == NodeType::Unvisited)
+            .collect();
+        if empty.is_empty() {
+            self.agents[owner.index()].node_type = NodeType::FullyVisited;
+        } else if let Some(parent_port) = self.agents[owner.index()].parent_port {
+            if self.edge_type(node, parent_port)? == EdgeType::OtherOther
+                && empty
+                    .iter()
+                    .all(|result| result.edge_type == EdgeType::OtherOther)
+            {
+                self.agents[owner.index()].node_type = NodeType::PartiallyVisited;
+            } else {
+                self.agents[owner.index()].node_type = NodeType::Visited;
+            }
+        } else {
+            self.agents[owner.index()].node_type = NodeType::Visited;
+        }
+        Ok(())
     }
 ```
 
@@ -770,57 +862,63 @@ the graph instead of with the agents:
   `k` nodes are ever occupied, so while any agent is unsettled some probed
   neighbour must be empty.
 - `traverse` **stops at dispersion**. Section 5: "the process continues until no
-  unsettled agents remain". The tree at that moment need not yet be a P1Tree —
-  a parked node may still hold a `tpq` parent edge — and that is fine, because
+  unsettled agents remain". The tree at that moment need not yet be a P1Tree â€”
+  a parked node may still hold a `tpq` parent edge â€” and that is fine, because
   dispersion is the goal.
+
+`traverse` has two ways out, dispersion or the root being popped, and `run`
+follows either with `retrace`, which walks the tree in post-order and drops each
+travelling scout at its home. A run that hits the round limit stops without
+retrace.
 
 ```mermaid
 flowchart TD
     A["run() / simulate()"] --> B["settle_highest_at(root)"]
     B --> C["traverse()"]
-    C --> D{"dispersed_at_step set?"}
+    C --> D{"dispersed?"}
     D -- yes --> R["retrace()"]
     D -- no --> E["neighbourhood_search()"]
 
     subgraph probe ["parallel probe, one batch at a time"]
-        E --> E1["probe_party() assigns ports to scouts"]
-        E1 --> E2["scouts step out together"]
-        E2 --> E3["state_of() / probe_detour()"]
-        E3 --> E4{"choose_next_edge() found one?"}
-        E4 -- no, ports left --> E1
+        E --> E1["probe_party() picks the scouts"]
+        E1 --> E2["next batch: scouts go out, state_of() / probe_detour(), and back"]
+        E2 --> E3{"somewhere to go, or no ports left?"}
+        E3 -- no --> E2
     end
 
-    E4 -- yes --> F{"must_defer()?"}
-    E4 -- "no, ports exhausted" --> G{"awaits_port_one()?"}
+    E3 -- yes --> E4{"choose_next_edge()"}
+    E4 -- found --> F{"must_defer()?"}
+    E4 -- exhausted --> G{"awaits_port_one()?"}
 
     F -- yes --> P["mark partiallyVisited"]
-    F -- no --> H["advance()"]
+    F -- no --> H["advance(): move, settle_highest_at() if unvisited, set_parent()"]
     G -- yes --> P
     G -- no --> Q["mark fullyVisited"]
 
-    H --> I["settle_highest_at() if unvisited"]
-    I --> J["set_parent() / reconfigure"]
-    J --> K["apply_can_vacate() / apply_parent_vacate()"]
+    H --> K["apply_can_vacate() / apply_parent_vacate()"]
     K --> D
 
     P --> L["apply_can_vacate()"]
     Q --> L
     L --> M["backtrack()"]
-    M -- "root popped" --> Z["Termination::Completed"]
-    M -- else --> D
+    M --> N{"root popped?"}
+    N -- no --> D
+    N -- yes --> R
 
     R --> S["post_order() walk, drop each scout at its home"]
+    S --> Z["Termination::Completed"]
 ```
 
 ```rust
     /// The `while S != {}` loop of Algorithm 2, with the stack realised by the
     /// parent pointers the settled agents hold.
     ///
-    /// The loop runs until the root is popped, which is Algorithm 2's own
-    /// termination. Stopping earlier, as soon as every agent had settled, left
-    /// nodes `partiallyVisited` with a `tpq` parent edge and so broke
-    /// Definition 1: it is exactly the walk back to the root that reconfigures
-    /// them.
+    /// Under [`Stop::AtDispersion`], the default, the loop ends as soon as every
+    /// agent has settled (Section 5). Under [`Stop::AtFullTree`] it runs until
+    /// the root is popped, Algorithm 2's own termination, which is the walk
+    /// that reconfigures any node still `partiallyVisited` and so makes the
+    /// tree satisfy Definition 1. Popping the root also ends the default run
+    /// if it comes first. Either way the caller runs Retrace afterwards.
     fn traverse(&mut self) -> Result<Termination, P1Error> {
         let mut rounds = 0_u64;
         loop {
@@ -1087,8 +1185,8 @@ flowchart TD
             }
             NodeType::PartiallyVisited => {
                 // Reconfiguration (rule (D4)): the old tpq parent edge is
-                // dropped in set_parent above and this port-1 edge takes its
-                // place, which makes the node visited.
+                // replaced by this port-1 edge in set_parent below, which
+                // makes the node visited.
                 self.node_type[target.index()] = NodeType::Visited;
             }
             NodeType::Visited | NodeType::FullyVisited => {}
@@ -1258,11 +1356,12 @@ differ in who does the looking and what the tree is for.
 
 | | Drop and Freeze | Help by Scouts | P1Tree |
 | --- | --- | --- | --- |
+| Start | one or several nodes | one node | one node |
 | Who probes | unsettled agents, one per port | unsettled agents plus vacated settlers | unsettled agents plus vacated settlers |
 | Probe cost | one port per agent per round | parallel across scouts | parallel, and stops at the first find |
 | Port labels | overwritten by `canonicalize_ports` | as given | as given, and central to the result |
-| Tree | incidental to the walk | carries the retrace | the object being built |
-| Stops when | every agent is settled | every agent is settled | every agent is settled |
+| Tree | parent ports the backtrack follows | carries the retrace | the object being built |
+| Stops when | every agent is settled | every agent is settled, then retrace takes the scouts home | every agent is settled or the root is popped, then retrace takes the scouts home |
 
 The port-label row is the one that catches people out. Drop-and-Freeze discards
 the port assignment an experiment asked for, so sweeping `--ports` changes
