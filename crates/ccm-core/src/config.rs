@@ -6,6 +6,9 @@ pub enum Algorithm {
     HelpByScouts,
     /// `DFS_P1Tree` dispersion, which builds a port-one tree.
     P1Tree,
+    /// `RootedAsync`: the same paper's asynchronous algorithm, each agent
+    /// acting only on what it sees at its own node.
+    RootedAsync,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -34,9 +37,18 @@ pub enum StartingModel {
     Explicit,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+/// Who is activated when. Every algorithm runs under `Synchronous`, where time
+/// is counted in rounds. Only `RootedAsync` is written for the others, where it
+/// is counted in epochs: the shortest intervals in which every agent completes
+/// a cycle.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum SchedulerModel {
+    #[default]
     Synchronous,
+    /// One agent at a time, in a random order drawn from the run's seed.
+    Asynchronous,
+    /// As `Asynchronous`, but `agent` is activated only every `period` steps.
+    Starved { agent: u32, period: u32 },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

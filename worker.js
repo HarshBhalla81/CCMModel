@@ -3,6 +3,7 @@
 let wasm = null;
 let loadError = null;
 let loadPromise = null;
+let buildId = '';
 
 async function load() {
   if (wasm || loadError) return wasm;
@@ -11,17 +12,17 @@ async function load() {
       try {
         const manifestResponse = await fetch('./wasm/web/manifest.json', { cache: 'no-store' });
         if (!manifestResponse.ok) throw new Error(`WASM manifest returned ${manifestResponse.status}`);
-        const { buildId } = await manifestResponse.json();
+        ({ buildId } = await manifestResponse.json());
         if (!buildId) throw new Error('WASM manifest has no build ID');
         const token = encodeURIComponent(buildId);
         const module = await import(`./wasm/web/ccm_wasm.js?v=${token}`);
         await module.default(`./wasm/web/ccm_wasm_bg.wasm?v=${token}`);
         wasm = module;
-        self.postMessage({ type: 'ready' });
+        self.postMessage({ type: 'ready', buildId });
         return wasm;
       } catch (error) {
         loadError = error;
-        self.postMessage({ type: 'error', phase: 'load', message: 'WASM package is missing. Run: ./scripts/build-wasm.sh' });
+        self.postMessage({ type: 'error', phase: 'load', message: 'The simulator could not load. Try reloading the page.' });
         return null;
       }
     })();
@@ -31,10 +32,21 @@ async function load() {
 
 load();
 
+/* The menu value names the algorithm, and for RootedAsync the schedule too. */
+function selectorFor(name) {
+  switch (name) {
+    case 'help': return wasm.AlgorithmSelector.HelpByScouts;
+    case 'p1tree': return wasm.AlgorithmSelector.P1Tree;
+    case 'rooted_async': return wasm.AlgorithmSelector.RootedAsync;
+    case 'rooted_async_random': return wasm.AlgorithmSelector.RootedAsyncRandom;
+    default: return wasm.AlgorithmSelector.DropAndFreeze;
+  }
+}
+
 self.onmessage = async ({ data }) => {
   if (data.type === 'ping') {
     if (!wasm) await load();
-    self.postMessage({ type: wasm ? 'ready' : 'error', message: loadError?.message });
+    self.postMessage({ type: wasm ? 'ready' : 'error', message: loadError?.message, buildId });
     return;
   }
   if (data.type === 'sweep') {
@@ -43,24 +55,23 @@ self.onmessage = async ({ data }) => {
     // The dashboard asks for many small runs at once. Looping here keeps the
     // main thread free and avoids a postMessage round trip per data point.
     try {
-      const algorithm = data.algorithm === 'help'
-        ? wasm.AlgorithmSelector.HelpByScouts
-        : data.algorithm === 'p1tree'
-          ? wasm.AlgorithmSelector.P1Tree
-          : wasm.AlgorithmSelector.DropAndFreeze;
       const results = [];
       for (let i = 0; i < data.jobs.length; i++) {
         const job = data.jobs[i];
+        // A job may name its own algorithm; the schedule comparison does.
+        const algorithm = selectorFor(job.algorithm ?? data.algorithm);
         const simulation = new wasm.WasmSimulation(
           job.nodeCount, new Uint32Array(job.edges), new Uint32Array(job.starts),
           algorithm, wasm.TraceMode.Off, BigInt(job.roundLimit), 0, 1,
         );
+        simulation.set_schedule_seed(BigInt(job.seed ?? i));
         const output = simulation.run();
         results.push({
           rounds: Number(output.rounds()),
           moves: Number(output.moves()),
           probes: Number(output.probes()),
           completed: output.termination_code() === 0,
+          positions: output.positions(),
         });
         output.free();
         simulation.free();
@@ -79,11 +90,7 @@ self.onmessage = async ({ data }) => {
   if (!wasm) return;
   try {
     self.postMessage({ type: 'progress', value: 0, message: 'Starting Rust simulation…' });
-    const algorithm = data.algorithm === 'help'
-      ? wasm.AlgorithmSelector.HelpByScouts
-      : data.algorithm === 'p1tree'
-        ? wasm.AlgorithmSelector.P1Tree
-        : wasm.AlgorithmSelector.DropAndFreeze;
+    const algorithm = selectorFor(data.algorithm);
     const traceMode = data.traceMode === 'full'
       ? wasm.TraceMode.Full
       : data.traceMode === 'bounded' ? wasm.TraceMode.Bounded : wasm.TraceMode.Off;
@@ -91,6 +98,7 @@ self.onmessage = async ({ data }) => {
       data.nodeCount, new Uint32Array(data.edges), new Uint32Array(data.starts),
       algorithm, traceMode, BigInt(data.roundLimit), data.maxTraceRecords, data.sampleEvery,
     );
+    simulation.set_schedule_seed(BigInt(data.scheduleSeed ?? 0));
     const output = simulation.run();
     const positions = output.positions();
     const statuses = output.statuses();
