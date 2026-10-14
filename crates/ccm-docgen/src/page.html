@@ -35,12 +35,12 @@
           <button id="codeClose" class="icon-button" type="button" aria-label="Close">×</button>
         </div>
         <p id="codeSource" class="code-source"></p>
-        <pre id="codeBody" class="code-body"><code>Boxes with a solid border carry code. Click one and it appears here, exactly as it is in the crate.</code></pre>
+        <pre id="codeBody" class="code-body"><code>Boxes with a solid border carry code. Click one to see the code it stands for.</code></pre>
       </aside>
     </div>
   </main>
 
-  <footer>Generated from the crates by <code>scripts/gen-docs.sh</code> · <a href="https://github.com/drdebmath/CCMModel">source</a></footer>
+  <footer>CCM Network Lab · <a href="https://github.com/drdebmath/CCMModel">source</a></footer>
 
   <div id="codeStore" hidden><!--CODE--></div>
 
@@ -55,9 +55,8 @@
     } catch (error) {
       engine.textContent = 'Interactivity unavailable';
       document.getElementById('codeBody').textContent =
-        `Could not start the page controller (${error.message}). Build the browser package ` +
-        `with ./scripts/build-wasm.sh, then serve over HTTP with: cargo run -p ccm-serve. ` +
-        `The diagrams below are plain SVG and are readable without it.`;
+        `The interactive view could not start (${error.message}). Try reloading the page; ` +
+        `the diagrams below can still be read without it.`;
       document.querySelector('.chart-panel')?.classList.remove('hidden');
     }
   </script>

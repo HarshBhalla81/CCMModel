@@ -218,11 +218,7 @@ fn run_sweep(state: &Rc<RefCell<DashState>>) {
         app.hover = None;
     }
     set_busy(state, true);
-    say(
-        &document,
-        &format!("Running {total} simulations in the worker…"),
-        "busy",
-    );
+    say(&document, &format!("Running {total} simulations…"), "busy");
     set_text(&document, "runTitle", "Sweeping…");
 
     create_worker(state);
@@ -242,7 +238,7 @@ fn create_worker(state: &Rc<RefCell<DashState>>) {
     let url = format!("./worker.js?session={:.0}", js_sys::Date::now());
     let Ok(worker) = Worker::new(&url) else {
         let document = state.borrow().document.clone();
-        say(&document, "Could not start the worker.", "error");
+        say(&document, "Could not start the simulator.", "error");
         set_busy(state, false);
         return;
     };
@@ -279,13 +275,13 @@ fn create_worker(state: &Rc<RefCell<DashState>>) {
                 let message = Reflect::get(&data, &"message".into())
                     .ok()
                     .and_then(|v| v.as_string())
-                    .unwrap_or_else(|| "Worker error".into());
+                    .unwrap_or_else(|| "The simulator stopped unexpectedly.".into());
                 say(&document, &message, "error");
                 set_class(&document, "engineState", "engine-state error");
                 set_busy(&handler_state, false);
             }
             "ready" => {
-                set_text(&document, "engineState", "WASM ready");
+                set_text(&document, "engineState", "Ready");
                 set_class(&document, "engineState", "engine-state ready");
             }
             _ => {}
@@ -300,7 +296,7 @@ fn create_worker(state: &Rc<RefCell<DashState>>) {
 fn accept_results(state: &Rc<RefCell<DashState>>, rows: &JsValue) {
     let document = state.borrow().document.clone();
     let Ok(array) = rows.clone().dyn_into::<Array>() else {
-        say(&document, "The worker returned no results.", "error");
+        say(&document, "No results came back. Try again.", "error");
         set_busy(state, false);
         return;
     };

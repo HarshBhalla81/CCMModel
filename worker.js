@@ -22,7 +22,7 @@ async function load() {
         return wasm;
       } catch (error) {
         loadError = error;
-        self.postMessage({ type: 'error', phase: 'load', message: 'WASM package is missing. Run: ./scripts/build-wasm.sh' });
+        self.postMessage({ type: 'error', phase: 'load', message: 'The simulator could not load. Try reloading the page.' });
         return null;
       }
     })();

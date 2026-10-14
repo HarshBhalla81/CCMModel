@@ -1878,10 +1878,14 @@ fn create_worker(state: &Rc<RefCell<AppState>>) {
         Ok(w) => w,
         Err(_) => {
             let app = state.borrow();
-            set_text(&app.document, "engineState", "WASM worker error");
+            set_text(
+                &app.document,
+                "engineState",
+                "The simulator stopped unexpectedly.",
+            );
             say(
                 &app.document,
-                "Worker failed. Build the browser package with ./scripts/build-wasm.sh.",
+                "The simulator failed to start. Try reloading the page.",
                 "error",
             );
             return;
@@ -1919,7 +1923,7 @@ fn create_worker(state: &Rc<RefCell<AppState>>) {
                 set_busy(&ready_state, false);
                 return;
             }
-            set_text(&app.document, "engineState", "WASM ready");
+            set_text(&app.document, "engineState", "Ready");
             set_class(&app.document, "engineState", "engine-state ready");
         } else if typ == "progress" {
             let message = Reflect::get(&data, &"message".into())
@@ -1931,7 +1935,7 @@ fn create_worker(state: &Rc<RefCell<AppState>>) {
             let message = Reflect::get(&data, &"message".into())
                 .ok()
                 .and_then(|v| v.as_string())
-                .unwrap_or_else(|| "WASM worker error".into());
+                .unwrap_or_else(|| "The simulator stopped unexpectedly.".into());
             set_class(&app.document, "engineState", "engine-state error");
             say(&app.document, &message, "error");
             drop(app);
@@ -1970,7 +1974,7 @@ fn create_worker(state: &Rc<RefCell<AppState>>) {
         set_class(&app.document, "engineState", "engine-state error");
         say(
             &app.document,
-            "Worker failed. Build the browser package with ./scripts/build-wasm.sh.",
+            "The simulator failed to start. Try reloading the page.",
             "error",
         );
         drop(app);
@@ -1993,7 +1997,11 @@ fn run(state: &Rc<RefCell<AppState>>) {
         return;
     }
     if config.family == "complete" && config.node_count > 500 {
-        say(&document, "Complete graphs are capped at 500 nodes in the visualizer; use the native CLI for larger dense cases.", "error");
+        say(
+            &document,
+            "Complete graphs are limited to 500 nodes here.",
+            "error",
+        );
         return;
     }
     if config.node_count > 1000 && config.trace_mode == "full" {
@@ -2025,12 +2033,12 @@ fn run(state: &Rc<RefCell<AppState>>) {
         "runTitle",
         &format!("{} · {}", algorithm_label(&config.algorithm), config.family),
     );
-    say(&document, "Preparing graph and starting Rust…", "busy");
+    say(&document, "Preparing the graph…", "busy");
     create_worker(state);
     let worker = state.borrow().worker.clone();
     if let Some(worker) = worker {
         if post_run(&worker, &config, &graph, &starts).is_err() {
-            say(&document, "Unable to start the Rust worker.", "error");
+            say(&document, "Unable to start the simulator.", "error");
             set_busy(state, false);
         }
     }
@@ -2145,7 +2153,7 @@ fn compare_schedules(state: &Rc<RefCell<AppState>>) {
     let worker = state.borrow().worker.clone();
     if let Some(worker) = worker {
         if worker.post_message(&message).is_err() {
-            say(&document, "Unable to start the Rust worker.", "error");
+            say(&document, "Unable to start the simulator.", "error");
             set_busy(state, false);
         }
     }
@@ -2207,7 +2215,7 @@ fn cancel(state: &Rc<RefCell<AppState>>) {
     drop(app);
     set_busy(state, false);
     let app = state.borrow();
-    set_text(&app.document, "engineState", "Worker stopped");
+    set_text(&app.document, "engineState", "Stopped");
     say(&app.document, "Cancelled. Ready for another run.", "");
 }
 
@@ -2395,7 +2403,7 @@ fn import_file(state: &Rc<RefCell<AppState>>, event: Event) {
                 let app = target.borrow();
                 say(
                     &app.document,
-                    "Import failed: expected a ccm-browser-v1 JSON execution.",
+                    "Import failed: that file is not a run saved from this simulator.",
                     "error",
                 );
             }
@@ -2409,7 +2417,7 @@ fn import_file(state: &Rc<RefCell<AppState>>, event: Event) {
 fn validate_import(data: &ImportPayload) -> Result<(), String> {
     let node_count = data.graph.node_count;
     if data.schema != "ccm-browser-v1" {
-        return Err("unsupported schema".to_owned());
+        return Err("this file was not saved by this simulator".to_owned());
     }
     if !(1..=10_000).contains(&node_count) {
         return Err("node count must be between 1 and 10,000".to_owned());
